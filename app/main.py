@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request, Depends, HTTPException
@@ -13,13 +15,31 @@ from .auth import (
 )
 from .config import CACHE_TTL_SECONDS
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
+from . import uptime
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / 'app' / 'templates'))
 
 ADAPTERS = [creighton, macros, dailydozen, exodus, artifact, gameplan, event_app, skylar, clowder]
 
-app = FastAPI(title='Stephens.page Dashboard')
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await uptime.init_db()
+    task = asyncio.create_task(uptime.loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title='Stephens.page Dashboard', lifespan=lifespan)
 app.mount('/static', StaticFiles(directory=str(BASE_DIR / 'static')), name='static')
 
 
@@ -150,6 +170,19 @@ async def api_storage(request: Request, _: None = Depends(require_auth)):
         else:
             safe.append(r)
     return templates.TemplateResponse(request, 'partials/storage.html', {'rows': safe})
+
+
+@app.get('/api/uptime', response_class=HTMLResponse)
+async def api_uptime(request: Request, _: None = Depends(require_auth)):
+    state = await uptime.all_state()
+    alerts = await uptime.recent_alerts(50)
+    return templates.TemplateResponse(request, 'partials/uptime.html', {'state': state, 'alerts': alerts})
+
+
+@app.post('/api/uptime/check-now')
+async def api_uptime_check_now(_: None = Depends(require_auth)):
+    await uptime.run_once()
+    return {'ok': True}
 
 
 @app.post('/api/refresh')

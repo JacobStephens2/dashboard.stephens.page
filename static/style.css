@@ -54,6 +54,9 @@ td.ts { font-variant-numeric: tabular-nums; color: var(--muted); white-space: no
 .pill { display: inline-block; background: var(--panel-2); border: 1px solid var(--border); padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.78rem; color: var(--muted); margin-right: 0.25rem; }
 .extra { font-variant-numeric: tabular-nums; }
 
+.uptime-actions { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem; }
+h3 { margin: 1.25rem 0 0.5rem; font-size: 0.95rem; font-weight: 600; color: var(--text); }
+
 .login {
   max-width: 360px; margin: 4rem auto; background: var(--panel);
   border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;

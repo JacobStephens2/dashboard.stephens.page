@@ -74,6 +74,28 @@ sudo a2ensite dashboard.stephens.page
 sudo certbot --apache -d dashboard.stephens.page
 ```
 
+## Uptime monitoring
+
+A background asyncio task in the same dashboard process runs the checks in
+`app/uptime.py` every `UPTIME_INTERVAL` seconds (default 300). Each check is
+either:
+
+- `http` — HTTPS GET with a 10 s timeout; any 2xx/3xx is "up"
+- `systemd` — `systemctl is-active <unit>`; "active" is "up"
+
+State is persisted in `data/uptime.db`. A check has to fail
+`UPTIME_FAIL_THRESHOLD` (default 2) times consecutively before the monitor
+sends a DOWN alert to `ADMIN_EMAIL` via Mandrill; a RECOVERED alert fires on
+the next successful check. Alerts only fire on transitions — no repeat
+emails while a check stays down.
+
+Edit the `HTTP_CHECKS` and `SYSTEMD_CHECKS` lists in `app/uptime.py` to add
+or remove monitored endpoints, then `sudo systemctl restart dashboard`.
+
+The "Uptime" tab on the dashboard shows current status per check and the
+most recent alerts; a **Check all now** button forces an immediate round
+without waiting for the timer.
+
 ## Adding a new app
 
 1. Drop a new module in `app/data/your_app.py` exposing `accounts()`,

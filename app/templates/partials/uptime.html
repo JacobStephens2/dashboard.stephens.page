@@ -1,0 +1,67 @@
+<div class="uptime-actions">
+  <button hx-post="/api/uptime/check-now"
+          hx-swap="none"
+          hx-on::after-request="htmx.trigger('#tab-uptime', 'load')">Check all now</button>
+  <span class="muted small">Checks run automatically every 5 min · email alerts after 2 consecutive failures</span>
+</div>
+
+<h3 style="margin-top:1.25rem">Current status</h3>
+{% if not state %}
+  <p class="muted">No checks have run yet. Click "Check all now" to populate.</p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>Check</th>
+      <th>Status</th>
+      <th>Last checked</th>
+      <th>Last change</th>
+      <th>Detail</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in state %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td>
+          {% if r.status == 'up' %}<span class="badge ok">up</span>
+          {% elif r.status == 'down' %}<span class="badge bad">down{% if r.consecutive_failures > 1 %} ({{ r.consecutive_failures }}×){% endif %}</span>
+          {% else %}<span class="muted">{{ r.status }}</span>{% endif %}
+        </td>
+        <td class="ts">{{ r.last_checked or '—' }}</td>
+        <td class="ts">{{ r.last_status_change or '—' }}</td>
+        <td class="extra"><span class="muted small">{{ r.last_error or '—' }}</span></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h3 style="margin-top:1.5rem">Recent alerts</h3>
+{% if not alerts %}
+  <p class="muted">No alerts yet — everything has been steady since this dashboard started.</p>
+{% else %}
+<table>
+  <thead>
+    <tr>
+      <th>When</th>
+      <th>Check</th>
+      <th>Direction</th>
+      <th>Detail</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in alerts %}
+      <tr>
+        <td class="ts">{{ a.sent_at }}</td>
+        <td>{{ a.name }}</td>
+        <td>
+          {% if a.direction == 'down' %}<span class="badge bad">went down</span>
+          {% else %}<span class="badge ok">recovered</span>{% endif %}
+        </td>
+        <td class="extra"><span class="muted small">{{ a.detail or '—' }}</span></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
