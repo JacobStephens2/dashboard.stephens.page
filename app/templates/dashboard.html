@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block heading %}stephens.page · dashboard{% endblock %}
+{% block headeractions %}
+  <div class="header-actions">
+    <button hx-post="/api/refresh" hx-swap="none" hx-on::after-request="document.querySelectorAll('[hx-trigger]').forEach(el => htmx.trigger(el, 'load'))">Refresh</button>
+    <form method="post" action="/logout" style="display:inline">
+      <button type="submit" class="link">Sign out</button>
+    </form>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <nav class="tabs">
+    <button class="tab active" data-target="#tab-accounts">Accounts</button>
+    <button class="tab"        data-target="#tab-signups">Signups</button>
+    <button class="tab"        data-target="#tab-health">Health</button>
+    <button class="tab"        data-target="#tab-storage">Storage</button>
+  </nav>
+
+  <section id="tab-accounts" class="tab-panel"
+           hx-get="/api/accounts" hx-trigger="load" hx-swap="innerHTML">
+    <p class="muted">Loading accounts…</p>
+  </section>
+
+  <section id="tab-signups" class="tab-panel" hidden
+           hx-get="/api/signups" hx-trigger="load, revealed" hx-swap="innerHTML">
+    <p class="muted">Loading signups…</p>
+  </section>
+
+  <section id="tab-health" class="tab-panel" hidden
+           hx-get="/api/health" hx-trigger="load, revealed" hx-swap="innerHTML">
+    <p class="muted">Loading health…</p>
+  </section>
+
+  <section id="tab-storage" class="tab-panel" hidden
+           hx-get="/api/storage" hx-trigger="load, revealed" hx-swap="innerHTML">
+    <p class="muted">Loading storage…</p>
+  </section>
+
+  <script>
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.hidden = true);
+        btn.classList.add('active');
+        const target = document.querySelector(btn.dataset.target);
+        target.hidden = false;
+        htmx.trigger(target, 'revealed');
+      });
+    });
+  </script>
+{% endblock %}

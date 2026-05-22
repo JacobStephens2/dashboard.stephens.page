@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+jinja2
+aiomysql
+aiosqlite
+python-multipart
+python-jose[cryptography]
+bcrypt
+python-dotenv
+httpx
+itsdangerous

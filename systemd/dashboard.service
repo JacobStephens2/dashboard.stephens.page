@@ -1,0 +1,16 @@
+[Unit]
+Description=stephens.page Dashboard (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=jacob
+Group=jacob
+WorkingDirectory=/var/www/dashboard.stephens.page
+ExecStart=/var/www/dashboard.stephens.page/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 3460 --proxy-headers
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+<table>
+  <thead>
+    <tr>
+      <th>App</th>
+      <th>App dir</th>
+      <th>DB file</th>
+      <th>Users</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.app }}</td>
+        <td class="ts">{{ r.app_dir_bytes | humanbytes }}</td>
+        <td class="ts">{{ (r.db_bytes if r.db_bytes else None) | humanbytes }}</td>
+        <td>{{ r.user_count if r.user_count is not none else '—' }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>

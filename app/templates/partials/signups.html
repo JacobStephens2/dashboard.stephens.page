@@ -1,0 +1,18 @@
+{% if not signups %}
+  <p class="muted">No signups found.</p>
+{% else %}
+  <table>
+    <thead>
+      <tr><th>When</th><th>App</th><th>Email</th></tr>
+    </thead>
+    <tbody>
+      {% for s in signups %}
+        <tr>
+          <td class="ts">{{ s.created_at or '—' }}</td>
+          <td>{{ s.app }}</td>
+          <td>{{ s.email }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}

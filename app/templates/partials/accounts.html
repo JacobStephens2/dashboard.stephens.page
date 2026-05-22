@@ -1,0 +1,35 @@
+{% for s in sections %}
+  <div class="card">
+    <h2>{{ s.name }} <span class="muted small">{{ s.accounts|length }} {{ 'account' if s.accounts|length == 1 else 'accounts' }}</span></h2>
+    {% if s.error %}
+      <p class="error">DB error: {{ s.error }}</p>
+    {% elif not s.accounts %}
+      <p class="muted">No accounts.</p>
+    {% else %}
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Created</th>
+            <th>{{ s.activity_label or 'Last activity' }}</th>
+            <th>Extra</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in s.accounts %}
+            <tr>
+              <td>{{ a.email or '—' }}</td>
+              <td>{{ a.name or '—' }}</td>
+              <td class="ts">{{ a.created_at or '—' }}</td>
+              <td class="ts">{{ a.last_activity or '—' }}</td>
+              <td class="extra">
+                {% for k, v in a.extra.items() %}<span class="pill">{{ k }}: {{ v }}</span>{% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </div>
+{% endfor %}

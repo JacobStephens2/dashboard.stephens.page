@@ -1,0 +1,27 @@
+<table>
+  <thead>
+    <tr>
+      <th>App</th>
+      <th>Database</th>
+      <th>Service</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.app }}</td>
+        <td>
+          {% if r.db_reachable %}<span class="badge ok">reachable</span>
+          {% else %}<span class="badge bad">unreachable</span>{% endif %}
+        </td>
+        <td>
+          {% if r.service_unit is none %}<span class="muted">—</span>
+          {% elif r.service_active %}<span class="badge ok">{{ r.service_unit }} active</span>
+          {% else %}<span class="badge bad">{{ r.service_unit }} down</span>{% endif %}
+        </td>
+        <td class="extra">{% if r.db_error %}<span class="muted small">{{ r.db_error }}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
