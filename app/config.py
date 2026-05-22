@@ -41,6 +41,7 @@ APP_ROOTS = {
     'gameplan':   '/var/www/gameplan.stephens.page',
     'event':      '/var/www/event.stephens.page',
     'skylar':     '/var/www/skylar.stephens.page',
+    'clowder':    '/var/www/clowder.stephens.page',
 }
 
 # Map adapter name -> systemd unit (None if no service / Apache-only PHP)

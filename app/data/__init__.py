@@ -32,10 +32,12 @@ class Signup:
 @dataclass
 class Health:
     app: str
-    db_reachable: bool
+    # True = reachable, False = unreachable, None = no database (e.g. client-only app)
+    db_reachable: Optional[bool]
     db_error: Optional[str] = None
     service_unit: Optional[str] = None
     service_active: Optional[bool] = None
+    note: Optional[str] = None  # free-form context, e.g. "static site, no backend"
 
 
 @dataclass

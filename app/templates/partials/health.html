@@ -12,7 +12,8 @@
       <tr>
         <td>{{ r.app }}</td>
         <td>
-          {% if r.db_reachable %}<span class="badge ok">reachable</span>
+          {% if r.db_reachable is none %}<span class="muted">n/a</span>
+          {% elif r.db_reachable %}<span class="badge ok">reachable</span>
           {% else %}<span class="badge bad">unreachable</span>{% endif %}
         </td>
         <td>
@@ -20,7 +21,10 @@
           {% elif r.service_active %}<span class="badge ok">{{ r.service_unit }} active</span>
           {% else %}<span class="badge bad">{{ r.service_unit }} down</span>{% endif %}
         </td>
-        <td class="extra">{% if r.db_error %}<span class="muted small">{{ r.db_error }}</span>{% endif %}</td>
+        <td class="extra">
+          {% if r.db_error %}<span class="muted small">{{ r.db_error }}</span>
+          {% elif r.note %}<span class="muted small">{{ r.note }}</span>{% endif %}
+        </td>
       </tr>
     {% endfor %}
   </tbody>

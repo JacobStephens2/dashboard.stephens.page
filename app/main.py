@@ -12,12 +12,12 @@ from .auth import (
     is_authenticated, require_auth,
 )
 from .config import CACHE_TTL_SECONDS
-from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar
+from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / 'app' / 'templates'))
 
-ADAPTERS = [creighton, macros, dailydozen, exodus, artifact, gameplan, event_app, skylar]
+ADAPTERS = [creighton, macros, dailydozen, exodus, artifact, gameplan, event_app, skylar, clowder]
 
 app = FastAPI(title='Stephens.page Dashboard')
 app.mount('/static', StaticFiles(directory=str(BASE_DIR / 'static')), name='static')
