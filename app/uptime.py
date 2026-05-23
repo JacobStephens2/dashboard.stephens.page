@@ -22,6 +22,7 @@ import aiosqlite
 import httpx
 
 from . import config  # noqa: F401 — imported for side effect: loads .env into os.environ
+from .sms import send_alert_sms
 
 log = logging.getLogger('uptime')
 
@@ -275,7 +276,13 @@ async def run_once():
     for res in results:
         alert = await update_state_and_decide(res)
         if alert:
-            await send_alert_email(res.name, alert, res.detail)
+            # Email and SMS in parallel: a slow/failing SMS provider must not
+            # delay (or block) the email path, and vice versa.
+            await asyncio.gather(
+                send_alert_email(res.name, alert, res.detail),
+                send_alert_sms(res.name, alert, res.detail),
+                return_exceptions=True,
+            )
             await log_alert(res.name, alert, res.detail)
 
 

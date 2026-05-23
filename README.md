@@ -96,6 +96,28 @@ The "Uptime" tab on the dashboard shows current status per check and the
 most recent alerts; a **Check all now** button forces an immediate round
 without waiting for the timer.
 
+### SMS alerts (optional)
+
+The monitor can also text the operator on every transition, in parallel
+with the email path. SMS is **off** until you set `SMS_PROVIDER` and
+`ALERT_PHONE_NUMBER` in `.env`.
+
+Two providers are wired in:
+
+- **`textbelt`** — pay-as-you-go, no registration. Buy a key at
+  <https://textbelt.com> (~$3/50 texts) and set `TEXTBELT_API_KEY`. Good
+  as a same-day bridge while a Telnyx 10DLC campaign is being approved.
+- **`telnyx`** — production path. Requires an LLC + EIN + approved 10DLC
+  campaign; cheaper per-message; set `TELNYX_API_KEY` and
+  `TELNYX_FROM_NUMBER` (the Telnyx-owned number you registered).
+
+Swap providers by editing `SMS_PROVIDER=textbelt` → `SMS_PROVIDER=telnyx`
+and restarting the dashboard. The message body, transition logic, and
+"no repeat while down" behavior are identical regardless of provider.
+
+Provider failures are logged but never block the email path — both
+channels fire from `asyncio.gather()` with `return_exceptions=True`.
+
 ## Adding a new app
 
 1. Drop a new module in `app/data/your_app.py` exposing `accounts()`,
