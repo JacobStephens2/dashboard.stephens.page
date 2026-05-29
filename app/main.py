@@ -15,7 +15,7 @@ from .auth import (
 )
 from .config import CACHE_TTL_SECONDS
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
-from . import uptime
+from . import uptime, system
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -76,7 +76,25 @@ def humanbytes(n):
     return f"{n:.1f} PB"
 
 
+def humanduration(seconds):
+    if seconds is None:
+        return '—'
+    seconds = int(seconds)
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes or not parts:
+        parts.append(f"{minutes}m")
+    return ' '.join(parts)
+
+
 templates.env.filters['humanbytes'] = humanbytes
+templates.env.filters['humanduration'] = humanduration
 
 
 # --- Routes -------------------------------------------------------------------
@@ -170,6 +188,13 @@ async def api_storage(request: Request, _: None = Depends(require_auth)):
         else:
             safe.append(r)
     return templates.TemplateResponse(request, 'partials/storage.html', {'rows': safe})
+
+
+@app.get('/api/system', response_class=HTMLResponse)
+async def api_system(request: Request, _: None = Depends(require_auth)):
+    # Cheap procfs reads; cache briefly so rapid refreshes don't re-stat disks.
+    stats = await cached('system', lambda: asyncio.to_thread(system.collect))
+    return templates.TemplateResponse(request, 'partials/system.html', {'s': stats})
 
 
 @app.get('/api/uptime', response_class=HTMLResponse)

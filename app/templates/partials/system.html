@@ -1,0 +1,47 @@
+{% macro meter(pct) -%}
+  {%- set cls = 'bad' if pct >= 90 else ('warn' if pct >= 75 else 'ok') -%}
+  <div class="meter"><div class="meter-fill {{ cls }}" style="width: {{ '%.1f' % pct }}%"></div></div>
+{%- endmacro %}
+
+<div class="card">
+  <h2>Memory</h2>
+  {{ meter(s.mem_percent) }}
+  <p class="muted small">
+    {{ s.mem_used | humanbytes }} used of {{ s.mem_total | humanbytes }}
+    ({{ '%.0f' % s.mem_percent }}%) · {{ s.mem_available | humanbytes }} available
+  </p>
+
+  {% if s.swap_total %}
+    <h3>Swap</h3>
+    {{ meter(s.swap_percent) }}
+    <p class="muted small">{{ s.swap_used | humanbytes }} used of {{ s.swap_total | humanbytes }} ({{ '%.0f' % s.swap_percent }}%)</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Disk</h2>
+  {% for d in s.disks %}
+    <h3>{{ d.mount }}</h3>
+    {{ meter(d.percent) }}
+    <p class="muted small">{{ d.used_bytes | humanbytes }} used of {{ d.total_bytes | humanbytes }} ({{ '%.0f' % d.percent }}%) · {{ d.free_bytes | humanbytes }} free</p>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>Load &amp; uptime</h2>
+  <table>
+    <tbody>
+      <tr>
+        <td>Load average</td>
+        <td class="extra">
+          {{ '%.2f' % s.load1 }} · {{ '%.2f' % s.load5 }} · {{ '%.2f' % s.load15 }}
+          <span class="muted small">(1 · 5 · 15 min, {{ s.cpu_count }} CPU{{ 's' if s.cpu_count != 1 else '' }})</span>
+        </td>
+      </tr>
+      <tr>
+        <td>Uptime</td>
+        <td class="extra">{{ s.uptime_seconds | humanduration }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

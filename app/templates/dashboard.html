@@ -14,6 +14,7 @@
     <button class="tab active" data-target="#tab-accounts">Accounts</button>
     <button class="tab"        data-target="#tab-signups">Signups</button>
     <button class="tab"        data-target="#tab-uptime">Uptime</button>
+    <button class="tab"        data-target="#tab-system">System</button>
     <button class="tab"        data-target="#tab-health">Health</button>
     <button class="tab"        data-target="#tab-storage">Storage</button>
   </nav>
@@ -31,6 +32,11 @@
   <section id="tab-uptime" class="tab-panel" hidden
            hx-get="/api/uptime" hx-trigger="load, revealed" hx-swap="innerHTML">
     <p class="muted">Loading uptime…</p>
+  </section>
+
+  <section id="tab-system" class="tab-panel" hidden
+           hx-get="/api/system" hx-trigger="load, revealed" hx-swap="innerHTML">
+    <p class="muted">Loading system…</p>
   </section>
 
   <section id="tab-health" class="tab-panel" hidden
