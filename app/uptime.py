@@ -32,7 +32,7 @@ DB_PATH = BASE_DIR / 'data' / 'uptime.db'
 CHECK_INTERVAL_SECONDS = int(os.environ.get('UPTIME_INTERVAL', '300'))    # 5 min
 FAILURES_BEFORE_ALERT  = int(os.environ.get('UPTIME_FAIL_THRESHOLD', '2'))
 ADMIN_EMAIL            = os.environ.get('ADMIN_EMAIL', 'jacob@stephens.page')
-MANDRILL_API_KEY       = os.environ.get('MANDRILL_API_KEY', '')
+RESEND_API_KEY         = os.environ.get('RESEND_API_KEY', '')
 MAIL_FROM_EMAIL        = os.environ.get('MAIL_FROM_EMAIL', 'jacob@stephens.page')
 MAIL_FROM_NAME         = os.environ.get('MAIL_FROM_NAME', 'Stephens.page Dashboard')
 
@@ -236,8 +236,8 @@ async def log_alert(name: str, direction: str, detail: str):
 # --- Email --------------------------------------------------------------------
 
 async def send_alert_email(name: str, direction: str, detail: str):
-    if not MANDRILL_API_KEY:
-        log.warning('MANDRILL_API_KEY not set — would have alerted %s %s', name, direction)
+    if not RESEND_API_KEY:
+        log.warning('RESEND_API_KEY not set — would have alerted %s %s', name, direction)
         return
     subject = (
         f'[stephens.page] DOWN: {name}' if direction == 'down'
@@ -252,18 +252,18 @@ async def send_alert_email(name: str, direction: str, detail: str):
         f"Dashboard: https://dashboard.stephens.page/\n"
     )
     payload = {
-        'key': MANDRILL_API_KEY,
-        'message': {
-            'from_email': MAIL_FROM_EMAIL,
-            'from_name':  MAIL_FROM_NAME,
-            'to': [{'email': ADMIN_EMAIL, 'type': 'to'}],
-            'subject': subject,
-            'text': body,
-        },
+        'from': f'{MAIL_FROM_NAME} <{MAIL_FROM_EMAIL}>',
+        'to': [ADMIN_EMAIL],
+        'subject': subject,
+        'text': body,
     }
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post('https://mandrillapp.com/api/1.0/messages/send.json', json=payload)
+            r = await client.post(
+                'https://api.resend.com/emails',
+                headers={'Authorization': f'Bearer {RESEND_API_KEY}'},
+                json=payload,
+            )
             r.raise_for_status()
     except Exception as e:
         log.error('Failed to send alert email for %s (%s): %s', name, direction, e)
