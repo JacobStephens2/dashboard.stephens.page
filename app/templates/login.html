@@ -7,7 +7,51 @@
       <span>Password</span>
       <input type="password" name="password" autofocus required />
     </label>
-    {% if error %}<p class="error">Incorrect password.</p>{% endif %}
+    {% if totp_enabled %}
+    <label>
+      <span>Authenticator code</span>
+      <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
+             pattern="[0-9]*" maxlength="6" placeholder="6-digit code" required />
+    </label>
+    {% endif %}
+    {% if error %}<p class="error">Incorrect password or code.</p>{% endif %}
     <button type="submit">Sign in</button>
   </form>
+  <p id="passkey-row" style="margin-top:1rem;display:none">
+    <button type="button" id="passkey-btn">Sign in with a passkey</button>
+    <span id="passkey-msg" class="error" style="display:none"></span>
+  </p>
+{% endblock %}
+{% block scripts %}
+<script src="/static/webauthn.js"></script>
+<script>
+(async function () {
+  // Only show the passkey button if at least one is registered.
+  try {
+    const { available } = await fetch('/passkey/available').then(r => r.json());
+    if (available) document.getElementById('passkey-row').style.display = '';
+  } catch (e) {}
+
+  document.getElementById('passkey-btn').addEventListener('click', async () => {
+    const msg = document.getElementById('passkey-msg');
+    msg.style.display = 'none';
+    try {
+      const opts = await fetch('/passkey/auth/options').then(r => r.json());
+      opts.challenge = b64urlToBuf(opts.challenge);
+      (opts.allowCredentials || []).forEach(c => { c.id = b64urlToBuf(c.id); });
+      const cred = await navigator.credentials.get({ publicKey: opts });
+      const res = await fetch('/passkey/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(serializeAssertion(cred)),
+      });
+      if (res.ok) { location.href = '/'; }
+      else { throw new Error('verification failed'); }
+    } catch (e) {
+      msg.textContent = 'Passkey sign-in failed.';
+      msg.style.display = '';
+    }
+  });
+})();
+</script>
 {% endblock %}

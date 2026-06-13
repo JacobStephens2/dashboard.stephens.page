@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Passkeys{% endblock %}
+{% block heading %}Passkeys{% endblock %}
+{% block content %}
+  <p class="sub">Passkeys let you sign in with Face ID, Touch ID, Windows Hello, or a
+  security key instead of the password. The password still works as a fallback.</p>
+
+  <p>
+    <label>Name this device <input type="text" id="pk-name" placeholder="e.g. MacBook" /></label>
+    <button type="button" id="pk-add">Add a passkey</button>
+    <span id="pk-msg" style="display:none"></span>
+  </p>
+
+  <h2 style="font-size:1.05rem">Registered passkeys</h2>
+  <ul id="pk-list">
+    {% for c in credentials %}
+      <li data-id="{{ c.id }}">{{ c.name }}{% if c.added %} · added {{ c.added }}{% endif %}
+        <button type="button" class="pk-del" data-id="{{ c.id }}">Remove</button></li>
+    {% else %}
+      <li id="pk-empty">No passkeys yet.</li>
+    {% endfor %}
+  </ul>
+
+  <p style="margin-top:1.5rem"><a href="/">← Back to dashboard</a></p>
+{% endblock %}
+{% block scripts %}
+<script src="/static/webauthn.js"></script>
+<script>
+function pkMsg(text, ok) {
+  const m = document.getElementById('pk-msg');
+  m.textContent = text; m.style.display = ''; m.className = ok ? '' : 'error';
+}
+
+document.getElementById('pk-add').addEventListener('click', async () => {
+  try {
+    const opts = await fetch('/passkey/register/options').then(r => r.json());
+    opts.challenge = b64urlToBuf(opts.challenge);
+    opts.user.id = b64urlToBuf(opts.user.id);
+    (opts.excludeCredentials || []).forEach(c => { c.id = b64urlToBuf(c.id); });
+    const cred = await navigator.credentials.create({ publicKey: opts });
+    const name = document.getElementById('pk-name').value || 'passkey';
+    const res = await fetch('/passkey/register/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: serializeAttestation(cred), name }),
+    });
+    if (!res.ok) throw new Error('verify failed');
+    pkMsg('Passkey added.', true);
+    setTimeout(() => location.reload(), 600);
+  } catch (e) {
+    pkMsg('Could not add passkey.', false);
+  }
+});
+
+document.querySelectorAll('.pk-del').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (!confirm('Remove this passkey?')) return;
+    const res = await fetch('/passkey/credentials/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: btn.dataset.id }),
+    });
+    if (res.ok) location.reload();
+  });
+});
+</script>
+{% endblock %}

@@ -1,11 +1,13 @@
 import asyncio
+import json
 import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Form, Request, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Form, Request, Depends, HTTPException, Body
+from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -13,7 +15,9 @@ from .auth import (
     verify_password, issue_session_cookie, clear_session_cookie,
     is_authenticated, require_auth,
 )
-from .config import CACHE_TTL_SECONDS
+from . import passkey
+from . import totp as totp_mod
+from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
 from . import uptime, system
 
@@ -103,12 +107,15 @@ templates.env.filters['humanduration'] = humanduration
 async def login_form(request: Request, error: str | None = None):
     if is_authenticated(request):
         return RedirectResponse('/', status_code=303)
-    return templates.TemplateResponse(request, 'login.html', {'error': error})
+    return templates.TemplateResponse(
+        request, 'login.html', {'error': error, 'totp_enabled': totp_mod.is_enabled()})
 
 
 @app.post('/login')
-async def login_submit(request: Request, password: str = Form(...)):
+async def login_submit(request: Request, password: str = Form(...), code: str = Form('')):
     if not verify_password(password):
+        return RedirectResponse('/login?error=1', status_code=303)
+    if totp_mod.is_enabled() and not totp_mod.verify(code):
         return RedirectResponse('/login?error=1', status_code=303)
     response = RedirectResponse('/', status_code=303)
     issue_session_cookie(response)
@@ -122,9 +129,129 @@ async def logout():
     return response
 
 
+# --- Passkeys (WebAuthn) ------------------------------------------------------
+
+PK_CHAL_COOKIE = 'pk_chal'
+
+def _passkey_origin(request: Request) -> str:
+    origin = request.headers.get('origin')
+    if origin not in PASSKEY_ORIGINS:
+        raise HTTPException(status_code=400, detail='unrecognized origin')
+    return origin
+
+def _set_challenge_cookie(resp, tok: str):
+    resp.set_cookie(PK_CHAL_COOKIE, tok, max_age=passkey.CHALLENGE_TTL,
+                    httponly=True, secure=True, samesite='strict', path='/passkey')
+
+
+@app.get('/passkey/available')
+async def passkey_available():
+    return {'available': passkey.has_credentials()}
+
+
+@app.get('/passkey/auth/options')
+async def passkey_auth_options():
+    if not passkey.has_credentials():
+        raise HTTPException(status_code=404, detail='no passkeys registered')
+    opts_json, tok = passkey.authentication_options()
+    resp = JSONResponse(content=json.loads(opts_json))
+    _set_challenge_cookie(resp, tok)
+    return resp
+
+
+@app.post('/passkey/auth/verify')
+async def passkey_auth_verify(request: Request, credential: dict = Body(...)):
+    origin = _passkey_origin(request)
+    tok = request.cookies.get(PK_CHAL_COOKIE)
+    try:
+        passkey.verify_authentication(credential, tok, origin)
+    except Exception as e:
+        logging.warning('passkey auth failed: %s', e)
+        raise HTTPException(status_code=401, detail='passkey verification failed')
+    resp = JSONResponse(content={'ok': True})
+    resp.delete_cookie(PK_CHAL_COOKIE, path='/passkey')
+    issue_session_cookie(resp)
+    return resp
+
+
+@app.get('/passkey', response_class=HTMLResponse)
+async def passkey_manage(request: Request, _: None = Depends(require_auth)):
+    return templates.TemplateResponse(request, 'passkeys.html',
+                                      {'credentials': passkey.list_credentials()})
+
+
+@app.get('/passkey/register/options')
+async def passkey_register_options(request: Request, _: None = Depends(require_auth)):
+    opts_json, tok = passkey.registration_options()
+    resp = JSONResponse(content=json.loads(opts_json))
+    _set_challenge_cookie(resp, tok)
+    return resp
+
+
+@app.post('/passkey/register/verify')
+async def passkey_register_verify(request: Request, payload: dict = Body(...),
+                                  _: None = Depends(require_auth)):
+    origin = _passkey_origin(request)
+    tok = request.cookies.get(PK_CHAL_COOKIE)
+    try:
+        passkey.verify_registration(payload.get('credential', {}), tok, origin,
+                                    payload.get('name', 'passkey'))
+    except Exception as e:
+        logging.warning('passkey registration failed: %s', e)
+        raise HTTPException(status_code=400, detail='passkey registration failed')
+    resp = JSONResponse(content={'ok': True})
+    resp.delete_cookie(PK_CHAL_COOKIE, path='/passkey')
+    return resp
+
+
+@app.post('/passkey/credentials/delete')
+async def passkey_delete(request: Request, payload: dict = Body(...),
+                         _: None = Depends(require_auth)):
+    ok = passkey.delete_credential(payload.get('id', ''))
+    return {'ok': ok}
+
+
+# --- TOTP (authenticator-app 2FA) ---------------------------------------------
+
+@app.get('/totp', response_class=HTMLResponse)
+async def totp_manage(request: Request, error: str | None = None,
+                      _: None = Depends(require_auth)):
+    if totp_mod.is_enabled():
+        return templates.TemplateResponse(request, 'totp.html', {'enabled': True})
+    secret = totp_mod.new_secret()  # pending until confirmed with a live code
+    return templates.TemplateResponse(request, 'totp.html', {
+        'enabled': False, 'secret': secret,
+        'qr': totp_mod.qr_data_uri(secret), 'error': error,
+    })
+
+
+@app.post('/totp/enable')
+async def totp_enable(request: Request, secret: str = Form(...), code: str = Form(...),
+                      _: None = Depends(require_auth)):
+    if not totp_mod.enable(secret, code):
+        return RedirectResponse('/totp?error=1', status_code=303)
+    return RedirectResponse('/totp', status_code=303)
+
+
+@app.post('/totp/disable')
+async def totp_disable(request: Request, _: None = Depends(require_auth)):
+    totp_mod.disable()
+    return RedirectResponse('/totp', status_code=303)
+
+
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request, _: None = Depends(require_auth)):
     return templates.TemplateResponse(request, 'dashboard.html')
+
+
+@app.get('/tools', response_class=HTMLResponse)
+async def tools_private(request: Request, _: None = Depends(require_auth)):
+    # The private tools page (private repo names + portfolio gaps) is generated by
+    # infra/tools-refresh/generate.py into data/tools-private.html and served only here.
+    p = BASE_DIR / 'data' / 'tools-private.html'
+    if not p.exists():
+        return HTMLResponse('<p>Private tools view not generated yet.</p>', status_code=503)
+    return HTMLResponse(p.read_text())
 
 
 @app.get('/api/accounts', response_class=HTMLResponse)
@@ -218,7 +345,8 @@ async def api_refresh(_: None = Depends(require_auth)):
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
-    # If require_auth threw a 303, honor it as a redirect
+    # If require_auth threw a 303, honor it as a redirect; otherwise fall back to
+    # FastAPI's default handler (re-raising here would turn every 4xx into a 500).
     if exc.status_code == 303 and 'Location' in (exc.headers or {}):
         return RedirectResponse(exc.headers['Location'], status_code=303)
-    raise exc
+    return await default_http_exception_handler(request, exc)

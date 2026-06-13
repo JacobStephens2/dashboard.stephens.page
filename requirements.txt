@@ -9,3 +9,6 @@ bcrypt
 python-dotenv
 httpx
 itsdangerous
+webauthn
+pyotp
+qrcode[pil]

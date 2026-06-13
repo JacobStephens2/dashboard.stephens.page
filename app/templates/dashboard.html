@@ -3,6 +3,8 @@
 {% block headeractions %}
   <div class="header-actions">
     <button hx-post="/api/refresh" hx-swap="none" hx-on::after-request="document.querySelectorAll('[hx-trigger]').forEach(el => htmx.trigger(el, 'load'))">Refresh</button>
+    <a href="/passkey" class="link">Passkeys</a>
+    <a href="/totp" class="link">2FA</a>
     <form method="post" action="/logout" style="display:inline">
       <button type="submit" class="link">Sign out</button>
     </form>

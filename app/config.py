@@ -8,6 +8,21 @@ load_dotenv(BASE_DIR / '.env')
 ADMIN_PASSWORD_HASH = os.environ['ADMIN_PASSWORD_HASH']
 SESSION_SECRET = os.environ['SESSION_SECRET']
 
+# WebAuthn / passkeys. rp_id is the registrable domain so one passkey works across
+# every *.stephens.page subdomain (dashboard, server, and the gated tools view).
+PASSKEY_RP_ID = os.environ.get('PASSKEY_RP_ID', 'stephens.page')
+PASSKEY_RP_NAME = os.environ.get('PASSKEY_RP_NAME', 'Stephens.page Dashboard')
+PASSKEY_ORIGINS = set(
+    o.strip() for o in os.environ.get(
+        'PASSKEY_ORIGINS',
+        'https://dashboard.stephens.page,https://server.stephens.page',
+    ).split(',') if o.strip()
+)
+PASSKEY_FILE = os.environ.get('PASSKEY_FILE', str(BASE_DIR / 'data' / 'passkeys.json'))
+
+# TOTP (authenticator-app 2FA) secret for the password login.
+TOTP_FILE = os.environ.get('TOTP_FILE', str(BASE_DIR / 'data' / 'totp.json'))
+
 # SQLite paths
 SQLITE_DBS = {
     'creighton':  os.environ.get('CREIGHTON_DB',  '/var/www/creighton.stephens.page/server/data/creighton.db'),
