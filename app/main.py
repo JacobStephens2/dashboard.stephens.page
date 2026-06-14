@@ -266,16 +266,20 @@ async def tools_private(request: Request, _: None = Depends(require_auth)):
 
 @app.get('/tools.json')
 async def tools_feed(request: Request):
-    # Machine-readable feed for an authorized remote AI agent: private repo NAMES +
-    # the tech distribution, but WITHOUT the 'Where to focus next' gaps (stripped at
-    # generation time). Requires the bearer feed token (or a logged-in session).
+    # Machine-readable feed for a remote AI agent. With a valid bearer token (or a
+    # logged-in session): the PRIVATE feed — private repo NAMES + tech distribution,
+    # but no 'Where to focus next' gaps. With NO token: the PUBLIC feed — aggregate
+    # only, no private names (same data as tools.stephens.page). A WRONG token is 401.
     tok = _tools_token(request)
     if tok:
         if not (TOOLS_FEED_TOKEN and secrets.compare_digest(tok, TOOLS_FEED_TOKEN)):
             raise HTTPException(status_code=401, detail='invalid tools feed token')
-    elif not is_authenticated(request):
-        raise HTTPException(status_code=401, detail='tools feed token required')
-    p = BASE_DIR / 'data' / 'tools-feed.json'
+        name = 'tools-feed.json'        # authorized: private names, no gaps
+    elif is_authenticated(request):
+        name = 'tools-feed.json'        # logged-in human: private names, no gaps
+    else:
+        name = 'tools-public.json'      # no token: public aggregate, no names
+    p = BASE_DIR / 'data' / name
     if not p.exists():
         raise HTTPException(status_code=503, detail='tools feed not generated yet')
     return JSONResponse(content=json.loads(p.read_text()))
