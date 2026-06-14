@@ -23,6 +23,10 @@ PASSKEY_FILE = os.environ.get('PASSKEY_FILE', str(BASE_DIR / 'data' / 'passkeys.
 # TOTP (authenticator-app 2FA) secret for the password login.
 TOTP_FILE = os.environ.get('TOTP_FILE', str(BASE_DIR / 'data' / 'totp.json'))
 
+# Bearer token that lets an authorized AI agent / automation read /tools (the private
+# tools view). Empty string disables token access (session-only). Set in .env.
+TOOLS_FEED_TOKEN = os.environ.get('TOOLS_FEED_TOKEN', '')
+
 # SQLite paths
 SQLITE_DBS = {
     'creighton':  os.environ.get('CREIGHTON_DB',  '/var/www/creighton.stephens.page/server/data/creighton.db'),
