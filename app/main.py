@@ -264,6 +264,7 @@ async def tools_private(request: Request, _: None = Depends(require_auth)):
     return HTMLResponse(p.read_text())
 
 
+@app.get('/stack.json')
 @app.get('/tools.json')
 async def tools_feed(request: Request):
     # Machine-readable feed for a remote AI agent. With a valid bearer token (or a
