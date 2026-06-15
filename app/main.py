@@ -253,6 +253,7 @@ def _tools_token(request: Request) -> str:
     return request.query_params.get('token', '')
 
 
+@app.get('/stack', response_class=HTMLResponse)
 @app.get('/tools', response_class=HTMLResponse)
 async def tools_private(request: Request, _: None = Depends(require_auth)):
     # The full private tools page (private repo names + the 'Where to focus next' gap
