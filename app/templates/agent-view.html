@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Agent feed preview{% endblock %}
+{% block heading %}Agent feed preview{% endblock %}
+{% block content %}
+  <p>This is exactly what an AI agent receives from
+  <code>stephens.page/stack.json</code> - so you can see what's exposed before handing
+  out the token.</p>
+  <ul>
+    <li><strong>With</strong> <code>Authorization: Bearer &lt;token&gt;</code> → the
+    <strong>private feed</strong> below: your private repo <em>names</em> + the full
+    tech distribution, but <strong>not</strong> the "Where to focus next" gap analysis
+    (that never leaves your session).</li>
+    <li><strong>Without</strong> a token → the <strong>public feed</strong>: aggregate
+    only, private repos counted but never named (same data as the public stack page).</li>
+  </ul>
+
+  <h2>With the bearer token — private feed (repo names included)</h2>
+  <pre class="json">{{ feed_json }}</pre>
+
+  <h2>Without a token — public feed (no private names)</h2>
+  <pre class="json">{{ public_json }}</pre>
+
+  <p style="margin-top:1.5rem"><a href="/">← Back to dashboard</a></p>
+{% endblock %}
+{% block scripts %}
+<style>
+  h2 { font-size: 1.05rem; margin: 1.6rem 0 0.4rem; }
+  pre.json {
+    background: rgba(24,21,18,.05);
+    border: 1px solid #d6d1c9;
+    border-radius: 8px;
+    padding: 1rem;
+    overflow: auto;
+    max-height: 60vh;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  code { background: rgba(24,21,18,.06); padding: 0.1rem 0.35rem; border-radius: 5px; }
+</style>
+{% endblock %}
