@@ -265,20 +265,6 @@ async def tools_private(request: Request, _: None = Depends(require_auth)):
     return HTMLResponse(p.read_text())
 
 
-@app.get('/stack-agent-view', response_class=HTMLResponse)
-async def stack_agent_view(request: Request, _: None = Depends(require_auth)):
-    # Session-gated preview of exactly what stephens.page/stack.json returns to an
-    # agent: the private feed (with token) and the public feed (without). Lets the human
-    # see what the bearer token exposes before sharing it.
-    def load(name):
-        p = BASE_DIR / 'data' / name
-        return json.dumps(json.loads(p.read_text()), indent=2) if p.exists() else '(not generated yet)'
-    return templates.TemplateResponse(request, 'agent-view.html', {
-        'feed_json': load('tools-feed.json'),
-        'public_json': load('tools-public.json'),
-    })
-
-
 @app.get('/stack.json')
 @app.get('/tools.json')
 async def tools_feed(request: Request):
