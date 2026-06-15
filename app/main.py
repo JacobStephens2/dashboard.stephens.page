@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Form, Request, Depends, HTTPException, Body
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -265,26 +265,27 @@ async def tools_private(request: Request, _: None = Depends(require_auth)):
     return HTMLResponse(p.read_text())
 
 
-@app.get('/stack.json')
-@app.get('/tools.json')
-async def tools_feed(request: Request):
-    # Machine-readable feed for a remote AI agent. With a valid bearer token (or a
-    # logged-in session): the PRIVATE feed — private repo NAMES + tech distribution,
-    # but no 'Where to focus next' gaps. With NO token: the PUBLIC feed — aggregate
-    # only, no private names (same data as tools.stephens.page). A WRONG token is 401.
+@app.get('/stack.md')
+async def stack_feed(request: Request):
+    # LLM-friendly Markdown feed for an AI agent. With a valid bearer token (or a
+    # logged-in session): the PRIVATE feed — private repo NAMES + tech distribution.
+    # With NO token: the PUBLIC feed — aggregate only, no private names. WRONG token = 401.
+    # ?download=1 forces a file download.
     tok = _tools_token(request)
     if tok:
         if not (TOOLS_FEED_TOKEN and secrets.compare_digest(tok, TOOLS_FEED_TOKEN)):
             raise HTTPException(status_code=401, detail='invalid tools feed token')
-        name = 'tools-feed.json'        # authorized: private names, no gaps
+        name = 'tools-feed.md'          # authorized: private names
     elif is_authenticated(request):
-        name = 'tools-feed.json'        # logged-in human: private names, no gaps
+        name = 'tools-feed.md'          # logged-in human: private names
     else:
-        name = 'tools-public.json'      # no token: public aggregate, no names
+        name = 'tools-public.md'        # no token: public aggregate, no names
     p = BASE_DIR / 'data' / name
     if not p.exists():
-        raise HTTPException(status_code=503, detail='tools feed not generated yet')
-    return JSONResponse(content=json.loads(p.read_text()))
+        raise HTTPException(status_code=503, detail='stack feed not generated yet')
+    headers = ({'Content-Disposition': 'attachment; filename="jacob-stephens-stack.md"'}
+               if request.query_params.get('download') else {})
+    return Response(content=p.read_text(), media_type='text/markdown; charset=utf-8', headers=headers)
 
 
 @app.get('/api/accounts', response_class=HTMLResponse)
