@@ -288,6 +288,18 @@ async def stack_feed(request: Request):
     return Response(content=p.read_text(), media_type='text/markdown; charset=utf-8', headers=headers)
 
 
+@app.get('/stack-repos.md')
+async def stack_repos(request: Request, _: None = Depends(require_auth)):
+    # Full repo list (both owners, public + private) as Markdown. Session-only - it
+    # names every private repo, so no token path.
+    p = BASE_DIR / 'data' / 'tools-repos.md'
+    if not p.exists():
+        raise HTTPException(status_code=503, detail='repo list not generated yet')
+    headers = ({'Content-Disposition': 'attachment; filename="jacob-stephens-repos.md"'}
+               if request.query_params.get('download') else {})
+    return Response(content=p.read_text(), media_type='text/markdown; charset=utf-8', headers=headers)
+
+
 @app.get('/api/accounts', response_class=HTMLResponse)
 async def api_accounts(request: Request, _: None = Depends(require_auth)):
     async def load():
