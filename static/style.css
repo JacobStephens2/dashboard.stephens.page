@@ -95,3 +95,15 @@ h3 { margin: 1.25rem 0 0.5rem; font-size: 0.95rem; font-weight: 600; color: var(
 .nl-actions { white-space: nowrap; text-align: right; }
 .nl-actions .link { background: none; border: none; cursor: pointer; padding: 0 0.35rem; font-size: 0.85rem; }
 .nl-danger { color: #a3372a; }
+
+/* Readable links on the dark theme. Without an explicit rule, anchors fell back
+   to the browser default (unvisited blue, visited purple) - both low contrast on
+   the near-black background. Use the accent (#6aa7ff, ~7:1 on --bg). */
+a { color: var(--accent); text-decoration: none; }
+a:visited { color: var(--accent); }
+a:hover { text-decoration: underline; }
+.link, button.link, a.link { color: var(--accent); }
+.link:hover, button.link:hover, a.link:hover { color: var(--text); text-decoration: underline; }
+
+/* Delete action: the original brick red was too dark on the dark theme. */
+.nl-danger, button.link.nl-danger { color: #f0857a; }

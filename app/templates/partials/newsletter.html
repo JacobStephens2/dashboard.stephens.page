@@ -18,7 +18,10 @@
       <a class="link" href="/newsletter/compose">Compose a custom newsletter &rarr;</a>
     </div>
     <form hx-post="/api/newsletter/send" hx-target="#tab-newsletter" hx-swap="innerHTML" class="nl-send">
-      <input type="text" name="slug" placeholder="post slug, e.g. the-agents-i-run" required>
+      <select name="slug" required>
+        <option value="" disabled selected>Choose a post…</option>
+        {% for p in posts %}<option value="{{ p.slug }}">{{ p.title }}</option>{% endfor %}
+      </select>
       <label class="muted small"><input type="checkbox" name="force" value="1"> force re-send</label>
       <button type="submit">Send to confirmed</button>
     </form>
@@ -30,6 +33,10 @@
       <h2>Subscribers</h2>
       <a class="link" href="/api/newsletter/export.csv">Export CSV</a>
     </div>
+    <form hx-post="/api/newsletter/add" hx-target="#tab-newsletter" hx-swap="innerHTML" class="nl-send" style="margin:0 0 1rem">
+      <input type="email" name="email" placeholder="Add a subscriber by email" required>
+      <button type="submit">Add</button>
+    </form>
     {% if subscribers %}
     <table>
       <thead><tr><th>Email</th><th>Status</th><th>Subscribed</th><th>Confirmed</th><th></th></tr></thead>
@@ -66,14 +73,15 @@
     <h2>Send history</h2>
     {% if sends %}
     <table>
-      <thead><tr><th>Post</th><th>Subject</th><th>Sent</th><th>Recipients</th></tr></thead>
+      <thead><tr><th>Post</th><th>Subject</th><th>Sent</th><th>Recipients</th><th></th></tr></thead>
       <tbody>
       {% for s in sends %}
         <tr>
-          <td><a href="{{ s.post_url }}" target="_blank" rel="noopener">{{ s.post_url | replace('https://stephens.page', '') }}</a></td>
+          <td>{% if s.post_url.startswith('http') %}<a href="{{ s.post_url }}" target="_blank" rel="noopener">{{ s.post_url | replace('https://stephens.page', '') }}</a>{% else %}{{ s.post_url }}{% endif %}</td>
           <td>{{ s.subject }}</td>
           <td class="muted small">{{ s.sent_at | humandate }}</td>
           <td>{{ s.recipient_count }}</td>
+          <td class="nl-actions"><a class="link" href="/api/newsletter/sent/{{ s.id }}" target="_blank" rel="noopener">View email</a></td>
         </tr>
       {% endfor %}
       </tbody>

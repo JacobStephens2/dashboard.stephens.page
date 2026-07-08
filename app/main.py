@@ -258,15 +258,20 @@ async def home(request: Request, _: None = Depends(require_auth)):
 async def _newsletter_render(request: Request, flash: str | None = None, flash_kind: str = 'ok'):
     try:
         data = await nl.fetch()
+        try:
+            post_list = await nl.posts()
+        except Exception:
+            post_list = []
         ctx = {
             'stats': data.get('stats', {}),
             'subscribers': data.get('subscribers', []),
             'sends': data.get('sends', []),
+            'posts': post_list,
             'error': None,
         }
     except Exception as e:
         logging.warning('newsletter admin fetch failed: %s', e)
-        ctx = {'stats': {}, 'subscribers': [], 'sends': [], 'error': str(e)}
+        ctx = {'stats': {}, 'subscribers': [], 'sends': [], 'posts': [], 'error': str(e)}
     ctx['flash'] = flash
     ctx['flash_kind'] = flash_kind
     return templates.TemplateResponse(request, 'partials/newsletter.html', ctx)
@@ -307,6 +312,23 @@ async def api_newsletter_delete(request: Request, email: str = Form(...),
         return await _newsletter_render(request, f'Deleted {email} ({n} row).', 'ok')
     except Exception as e:
         return await _newsletter_render(request, f'Failed: {e}', 'err')
+
+
+@app.post('/api/newsletter/add', response_class=HTMLResponse)
+async def api_newsletter_add(request: Request, email: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        res = await nl.add(email.strip())
+        return await _newsletter_render(request, res.get('message', 'Added.'), 'ok' if res.get('ok') else 'err')
+    except Exception as e:
+        return await _newsletter_render(request, f'Add failed: {e}', 'err')
+
+
+@app.get('/api/newsletter/sent/{send_id}', response_class=HTMLResponse)
+async def api_newsletter_sent(request: Request, send_id: int, _: None = Depends(require_auth)):
+    try:
+        return HTMLResponse(await nl.sent_html(send_id))
+    except Exception as e:
+        return HTMLResponse(f'<p style="font-family:sans-serif">Could not load the sent email: {e}</p>', status_code=502)
 
 
 @app.get('/api/newsletter/export.csv')

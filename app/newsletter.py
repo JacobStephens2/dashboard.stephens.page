@@ -62,6 +62,28 @@ async def preview(body_html: str) -> str:
         return r.text
 
 
+async def add(email: str) -> dict:
+    """Manually add a subscriber (as confirmed)."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.post(f"{NEWSLETTER_ADMIN_URL}/admin/add", json={"email": email}, headers=_HEADERS)
+        return r.json()
+
+
+async def posts() -> list:
+    """Published posts available to send: [{slug, title}]."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.get(f"{NEWSLETTER_ADMIN_URL}/admin/posts", headers=_HEADERS)
+        r.raise_for_status()
+        return r.json().get("posts", [])
+
+
+async def sent_html(send_id: int) -> str:
+    """The stored HTML of a recorded send."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.get(f"{NEWSLETTER_ADMIN_URL}/admin/sent", params={"id": send_id}, headers=_HEADERS)
+        return r.text
+
+
 async def send_html(subject: str, body_html: str, test_email: str = "") -> dict:
     """Send a composed email to a test address (if given) or all confirmed subscribers."""
     async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
