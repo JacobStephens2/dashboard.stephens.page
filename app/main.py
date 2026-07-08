@@ -324,6 +324,36 @@ async def api_newsletter_export(request: Request, _: None = Depends(require_auth
                     headers={'Content-Disposition': 'attachment; filename="newsletter-subscribers.csv"'})
 
 
+@app.get('/newsletter/compose', response_class=HTMLResponse)
+async def newsletter_compose(request: Request, _: None = Depends(require_auth)):
+    return templates.TemplateResponse(request, 'compose.html', {})
+
+
+@app.post('/newsletter/compose/seed')
+async def newsletter_compose_seed(request: Request, slug: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        return JSONResponse(await nl.compose_seed(slug.strip()))
+    except Exception as e:
+        return JSONResponse({'ok': False, 'message': str(e)}, status_code=502)
+
+
+@app.post('/newsletter/compose/preview', response_class=HTMLResponse)
+async def newsletter_compose_preview(request: Request, body_html: str = Form(''), _: None = Depends(require_auth)):
+    try:
+        return HTMLResponse(await nl.preview(body_html))
+    except Exception as e:
+        return HTMLResponse(f'<p style="font-family:sans-serif;color:#a3372a">Preview failed: {e}</p>', status_code=502)
+
+
+@app.post('/newsletter/compose/send')
+async def newsletter_compose_send(request: Request, subject: str = Form(''), body_html: str = Form(''),
+                                  test_email: str = Form(''), _: None = Depends(require_auth)):
+    try:
+        return JSONResponse(await nl.send_html(subject, body_html, test_email.strip()))
+    except Exception as e:
+        return JSONResponse({'ok': False, 'message': str(e)}, status_code=502)
+
+
 def _tools_token(request: Request) -> str:
     """Read a feed token from `Authorization: Bearer <t>` or `?token=<t>`."""
     auth = request.headers.get('authorization', '')

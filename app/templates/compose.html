@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Compose newsletter{% endblock %}
+{% block heading %}Compose newsletter{% endblock %}
+{% block headeractions %}
+  <div class="header-actions">
+    <a href="/" class="link">&larr; Dashboard</a>
+  </div>
+{% endblock %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+<style>
+  .compose-field { width: 100%; padding: 0.55rem 0.7rem; font: inherit; margin: 0.3rem 0 1rem;
+                   border: 1px solid var(--rule, #444); border-radius: 6px; }
+  #editor { min-height: 280px; background: #fff; color: #181512; border-radius: 0 0 6px 6px; }
+  .ql-toolbar.ql-snow, .ql-container.ql-snow { border-color: var(--rule, #444); }
+  .ql-toolbar.ql-snow { background: #f3efe8; border-radius: 6px 6px 0 0; }
+  #preview { width: 100%; height: 440px; border: 1px solid var(--rule, #444); border-radius: 6px; background: #fff; }
+  .compose-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+  .compose-actions input { flex: 1 1 220px; padding: 0.5rem 0.7rem; }
+  #send-all { background: #9b4d24; color: #fff; }
+</style>
+
+<div class="card">
+  <div class="compose-actions" style="margin-bottom: 0.9rem;">
+    <input type="text" id="seed-slug" placeholder="Seed from a post slug, e.g. the-agents-i-run">
+    <button type="button" id="seed-btn">Load from post</button>
+  </div>
+  <label class="muted small" for="subject">Subject</label>
+  <input type="text" id="subject" class="compose-field" placeholder="Email subject line">
+  <label class="muted small">Body</label>
+  <div id="editor"></div>
+</div>
+
+<div class="card">
+  <div class="nl-head">
+    <h2>Preview</h2>
+    <button type="button" id="preview-btn" class="link">Refresh preview</button>
+  </div>
+  <p class="muted small">Exactly how the email will render, including the unsubscribe footer.</p>
+  <iframe id="preview" title="Email preview" sandbox="allow-same-origin"></iframe>
+</div>
+
+<div class="card">
+  <h2>Send</h2>
+  <p class="nl-flash" id="compose-status" style="display:none"></p>
+  <div class="compose-actions">
+    <input type="email" id="test-email" value="jacob@stephens.page" placeholder="test address">
+    <button type="button" id="test-btn">Send test</button>
+    <button type="button" id="send-all">Send to all confirmed</button>
+  </div>
+  <p class="muted small" style="margin-top:0.6rem">“Send test” goes only to the address above. “Send to all confirmed” emails every confirmed subscriber, each with a one-click unsubscribe.</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+<script>
+  const quill = new Quill('#editor', {
+    theme: 'snow',
+    placeholder: 'Write your newsletter…',
+    modules: { toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      ['link', 'blockquote'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['clean'],
+    ]},
+  });
+
+  const subjectEl = document.getElementById('subject');
+  const statusEl = document.getElementById('compose-status');
+  const previewEl = document.getElementById('preview');
+  const bodyHTML = () => quill.getSemanticHTML();
+
+  function flash(msg, ok) {
+    statusEl.style.display = 'block';
+    statusEl.textContent = msg;
+    statusEl.className = 'nl-flash ' + (ok ? 'ok' : 'err');
+  }
+  function post(url, data) {
+    return fetch(url, { method: 'POST', body: new URLSearchParams(data) });
+  }
+  async function refreshPreview() {
+    try {
+      const r = await post('/newsletter/compose/preview', { body_html: bodyHTML() });
+      previewEl.srcdoc = await r.text();
+    } catch (e) { flash('Preview failed: ' + e, false); }
+  }
+
+  document.getElementById('seed-btn').onclick = async () => {
+    const slug = document.getElementById('seed-slug').value.trim();
+    if (!slug) return;
+    try {
+      const j = await (await post('/newsletter/compose/seed', { slug })).json();
+      if (j.ok) {
+        subjectEl.value = j.subject || '';
+        quill.setContents([]);
+        quill.clipboard.dangerouslyPasteHTML(0, j.body_html || '');
+        flash('Loaded from ' + slug, true);
+        refreshPreview();
+      } else {
+        flash(j.message || 'Load failed', false);
+      }
+    } catch (e) { flash('Load failed: ' + e, false); }
+  };
+
+  document.getElementById('preview-btn').onclick = refreshPreview;
+
+  document.getElementById('test-btn').onclick = async () => {
+    const j = await (await post('/newsletter/compose/send', {
+      subject: subjectEl.value, body_html: bodyHTML(),
+      test_email: document.getElementById('test-email').value,
+    })).json();
+    flash(j.message || (j.ok ? 'Test sent.' : 'Failed.'), j.ok);
+  };
+
+  document.getElementById('send-all').onclick = async () => {
+    if (!confirm('Send this email to ALL confirmed subscribers?')) return;
+    const j = await (await post('/newsletter/compose/send', {
+      subject: subjectEl.value, body_html: bodyHTML(),
+    })).json();
+    flash(j.message || (j.ok ? 'Sending…' : 'Failed.'), j.ok);
+  };
+
+  // Keep the preview roughly in sync as you type (debounced).
+  let t; quill.on('text-change', () => { clearTimeout(t); t = setTimeout(refreshPreview, 900); });
+</script>
+{% endblock %}

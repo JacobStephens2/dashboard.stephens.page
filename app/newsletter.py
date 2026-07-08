@@ -43,3 +43,29 @@ async def send(slug: str, force: bool = False) -> dict:
                          json={"slug": slug, "force": force}, headers=_HEADERS)
         r.raise_for_status()
         return r.json()
+
+
+async def compose_seed(slug: str) -> dict:
+    """Seed the editor with subject + body built from a published post."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.post(f"{NEWSLETTER_ADMIN_URL}/admin/compose",
+                         json={"slug": slug}, headers=_HEADERS)
+        return r.json()
+
+
+async def preview(body_html: str) -> str:
+    """Return the composed body wrapped in the full email shell (HTML)."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.post(f"{NEWSLETTER_ADMIN_URL}/admin/preview",
+                         json={"body_html": body_html}, headers=_HEADERS)
+        r.raise_for_status()
+        return r.text
+
+
+async def send_html(subject: str, body_html: str, test_email: str = "") -> dict:
+    """Send a composed email to a test address (if given) or all confirmed subscribers."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as c:
+        r = await c.post(f"{NEWSLETTER_ADMIN_URL}/admin/send_html",
+                         json={"subject": subject, "body_html": body_html, "test_email": test_email},
+                         headers=_HEADERS)
+        return r.json()

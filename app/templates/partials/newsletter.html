@@ -13,7 +13,10 @@
   </div>
 
   <div class="card">
-    <h2>Send a post</h2>
+    <div class="nl-head">
+      <h2>Send a post</h2>
+      <a class="link" href="/newsletter/compose">Compose a custom newsletter &rarr;</a>
+    </div>
     <form hx-post="/api/newsletter/send" hx-target="#tab-newsletter" hx-swap="innerHTML" class="nl-send">
       <input type="text" name="slug" placeholder="post slug, e.g. the-agents-i-run" required>
       <label class="muted small"><input type="checkbox" name="force" value="1"> force re-send</label>
