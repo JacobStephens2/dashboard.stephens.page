@@ -76,3 +76,22 @@ h3 { margin: 1.25rem 0 0.5rem; font-size: 0.95rem; font-weight: 600; color: var(
   border-radius: 6px; padding: 0.5rem 0.6rem; font: inherit;
 }
 .login input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+
+/* --- Newsletter manager tab --- */
+.nl-stats { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.nl-stat { flex: 1 1 120px; text-align: center; }
+.nl-num { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.nl-flash { padding: 0.6rem 0.9rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.92rem; }
+.nl-flash.ok { background: #e6f4ea; color: #1e4d2b; }
+.nl-flash.err { background: #fbe9e7; color: #8a2c1f; }
+.nl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.nl-send { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 0.4rem; }
+.nl-send input[type="text"] { flex: 1 1 240px; padding: 0.45rem 0.6rem; }
+.nl-badge { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+            padding: 0.12rem 0.5rem; border-radius: 999px; background: #e8e8e8; color: #444; }
+.nl-badge.confirmed { background: #e6f4ea; color: #1e4d2b; }
+.nl-badge.pending { background: #fef6e0; color: #7a5a12; }
+.nl-badge.unsubscribed { background: #eee; color: #777; }
+.nl-actions { white-space: nowrap; text-align: right; }
+.nl-actions .link { background: none; border: none; cursor: pointer; padding: 0 0.35rem; font-size: 0.85rem; }
+.nl-danger { color: #a3372a; }

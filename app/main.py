@@ -20,7 +20,7 @@ from . import passkey
 from . import totp as totp_mod
 from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS, TOOLS_FEED_TOKEN
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
-from . import uptime, system
+from . import uptime, system, newsletter as nl
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -98,8 +98,16 @@ def humanduration(seconds):
     return ' '.join(parts)
 
 
+def humandate(epoch):
+    if not epoch:
+        return '—'
+    import datetime
+    return datetime.datetime.fromtimestamp(int(epoch)).strftime('%Y-%m-%d %H:%M')
+
+
 templates.env.filters['humanbytes'] = humanbytes
 templates.env.filters['humanduration'] = humanduration
+templates.env.filters['humandate'] = humandate
 
 
 # --- Routes -------------------------------------------------------------------
@@ -243,6 +251,77 @@ async def totp_disable(request: Request, _: None = Depends(require_auth)):
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request, _: None = Depends(require_auth)):
     return templates.TemplateResponse(request, 'dashboard.html')
+
+
+# --- Newsletter manager (backed by the Rust service's admin API) --------------
+
+async def _newsletter_render(request: Request, flash: str | None = None, flash_kind: str = 'ok'):
+    try:
+        data = await nl.fetch()
+        ctx = {
+            'stats': data.get('stats', {}),
+            'subscribers': data.get('subscribers', []),
+            'sends': data.get('sends', []),
+            'error': None,
+        }
+    except Exception as e:
+        logging.warning('newsletter admin fetch failed: %s', e)
+        ctx = {'stats': {}, 'subscribers': [], 'sends': [], 'error': str(e)}
+    ctx['flash'] = flash
+    ctx['flash_kind'] = flash_kind
+    return templates.TemplateResponse(request, 'partials/newsletter.html', ctx)
+
+
+@app.get('/api/newsletter', response_class=HTMLResponse)
+async def api_newsletter(request: Request, _: None = Depends(require_auth)):
+    return await _newsletter_render(request)
+
+
+@app.post('/api/newsletter/send', response_class=HTMLResponse)
+async def api_newsletter_send(request: Request, slug: str = Form(...),
+                              force: str = Form(''), _: None = Depends(require_auth)):
+    try:
+        res = await nl.send(slug.strip(), force=bool(force))
+        return await _newsletter_render(request, res.get('message', 'Send started.'), 'ok')
+    except Exception as e:
+        return await _newsletter_render(request, f'Send failed: {e}', 'err')
+
+
+@app.post('/api/newsletter/unsubscribe', response_class=HTMLResponse)
+async def api_newsletter_unsubscribe(request: Request, email: str = Form(...),
+                                     _: None = Depends(require_auth)):
+    try:
+        res = await nl.unsubscribe(email.strip())
+        n = res.get('affected', 0)
+        return await _newsletter_render(request, f'Unsubscribed {email} ({n} row).', 'ok')
+    except Exception as e:
+        return await _newsletter_render(request, f'Failed: {e}', 'err')
+
+
+@app.post('/api/newsletter/delete', response_class=HTMLResponse)
+async def api_newsletter_delete(request: Request, email: str = Form(...),
+                                _: None = Depends(require_auth)):
+    try:
+        res = await nl.delete(email.strip())
+        n = res.get('affected', 0)
+        return await _newsletter_render(request, f'Deleted {email} ({n} row).', 'ok')
+    except Exception as e:
+        return await _newsletter_render(request, f'Failed: {e}', 'err')
+
+
+@app.get('/api/newsletter/export.csv')
+async def api_newsletter_export(request: Request, _: None = Depends(require_auth)):
+    import csv
+    import io
+    data = await nl.fetch()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(['email', 'status', 'created_at', 'confirmed_at', 'unsubscribed_at'])
+    for s in data.get('subscribers', []):
+        w.writerow([s.get('email'), s.get('status'), s.get('created_at'),
+                    s.get('confirmed_at'), s.get('unsubscribed_at')])
+    return Response(content=buf.getvalue(), media_type='text/csv; charset=utf-8',
+                    headers={'Content-Disposition': 'attachment; filename="newsletter-subscribers.csv"'})
 
 
 def _tools_token(request: Request) -> str:

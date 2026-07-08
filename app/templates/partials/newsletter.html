@@ -1,0 +1,82 @@
+{% if error %}
+  <div class="card"><p class="muted">Newsletter service unreachable: {{ error }}</p></div>
+{% else %}
+  {% if flash %}
+    <p class="nl-flash {{ flash_kind }}">{{ flash }}</p>
+  {% endif %}
+
+  <div class="nl-stats">
+    <div class="card nl-stat"><div class="nl-num">{{ stats.confirmed or 0 }}</div><div class="muted small">Confirmed</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ stats.pending or 0 }}</div><div class="muted small">Pending</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ stats.unsubscribed or 0 }}</div><div class="muted small">Unsubscribed</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ stats.total or 0 }}</div><div class="muted small">Total</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Send a post</h2>
+    <form hx-post="/api/newsletter/send" hx-target="#tab-newsletter" hx-swap="innerHTML" class="nl-send">
+      <input type="text" name="slug" placeholder="post slug, e.g. the-agents-i-run" required>
+      <label class="muted small"><input type="checkbox" name="force" value="1"> force re-send</label>
+      <button type="submit">Send to confirmed</button>
+    </form>
+    <p class="muted small">Emails every confirmed subscriber and records the send. Guarded against a double-send unless “force” is checked.</p>
+  </div>
+
+  <div class="card">
+    <div class="nl-head">
+      <h2>Subscribers</h2>
+      <a class="link" href="/api/newsletter/export.csv">Export CSV</a>
+    </div>
+    {% if subscribers %}
+    <table>
+      <thead><tr><th>Email</th><th>Status</th><th>Subscribed</th><th>Confirmed</th><th></th></tr></thead>
+      <tbody>
+      {% for s in subscribers %}
+        <tr>
+          <td>{{ s.email }}</td>
+          <td><span class="nl-badge {{ s.status }}">{{ s.status }}</span></td>
+          <td class="muted small">{{ s.created_at | humandate }}</td>
+          <td class="muted small">{{ s.confirmed_at | humandate }}</td>
+          <td class="nl-actions">
+            {% if s.status != 'unsubscribed' %}
+            <form hx-post="/api/newsletter/unsubscribe" hx-target="#tab-newsletter" hx-swap="innerHTML" style="display:inline">
+              <input type="hidden" name="email" value="{{ s.email }}">
+              <button type="submit" class="link">Unsubscribe</button>
+            </form>
+            {% endif %}
+            <form hx-post="/api/newsletter/delete" hx-target="#tab-newsletter" hx-swap="innerHTML"
+                  hx-confirm="Delete {{ s.email }} permanently?" style="display:inline">
+              <input type="hidden" name="email" value="{{ s.email }}">
+              <button type="submit" class="link nl-danger">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">No subscribers yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Send history</h2>
+    {% if sends %}
+    <table>
+      <thead><tr><th>Post</th><th>Subject</th><th>Sent</th><th>Recipients</th></tr></thead>
+      <tbody>
+      {% for s in sends %}
+        <tr>
+          <td><a href="{{ s.post_url }}" target="_blank" rel="noopener">{{ s.post_url | replace('https://stephens.page', '') }}</a></td>
+          <td>{{ s.subject }}</td>
+          <td class="muted small">{{ s.sent_at | humandate }}</td>
+          <td>{{ s.recipient_count }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">Nothing sent yet.</p>
+    {% endif %}
+  </div>
+{% endif %}

@@ -27,6 +27,10 @@ TOTP_FILE = os.environ.get('TOTP_FILE', str(BASE_DIR / 'data' / 'totp.json'))
 # tools view). Empty string disables token access (session-only). Set in .env.
 TOOLS_FEED_TOKEN = os.environ.get('TOOLS_FEED_TOKEN', '')
 
+# Newsletter service (Rust/Axum) admin API. Same box, so we call it over localhost.
+NEWSLETTER_ADMIN_URL = os.environ.get('NEWSLETTER_ADMIN_URL', 'http://127.0.0.1:3462')
+NEWSLETTER_ADMIN_TOKEN = os.environ.get('NEWSLETTER_ADMIN_TOKEN', '')
+
 # SQLite paths
 SQLITE_DBS = {
     'creighton':  os.environ.get('CREIGHTON_DB',  '/var/www/creighton.stephens.page/server/data/creighton.db'),
