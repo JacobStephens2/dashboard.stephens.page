@@ -69,7 +69,7 @@ APP_ROOTS = {
 
 # Map adapter name -> systemd unit (None if no service / Apache-only PHP)
 SYSTEMD_UNITS = {
-    'creighton':  'creighton-api',
+    'creighton':  'chart35-api',
     'macros':     'macros-api',
     'dailydozen': 'dailydozen-api',
 }

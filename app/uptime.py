@@ -81,7 +81,7 @@ HTTP_CHECKS: list[Check] = [
 SYSTEMD_CHECKS: list[Check] = [
     Check('apache2',         'systemd', 'apache2'),
     Check('mysql',           'systemd', 'mysql'),
-    Check('Chart35 (api)',   'systemd', 'creighton-api'),
+    Check('Chart35 (api)',   'systemd', 'chart35-api'),
     Check('macros-api',      'systemd', 'macros-api'),
     Check('dailydozen-api',  'systemd', 'dailydozen-api'),
     Check('dashboard (svc)', 'systemd', 'dashboard'),
