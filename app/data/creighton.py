@@ -3,7 +3,7 @@ from ._helpers import fetch_sqlite, app_root, dir_bytes, file_bytes, systemctl_a
 from ..config import SQLITE_DBS
 
 NAME = 'creighton'
-LABEL = 'Creighton'
+LABEL = 'Chart35'
 ACTIVITY = 'last sync'
 
 
