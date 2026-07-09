@@ -19,6 +19,7 @@
     <button class="tab"        data-target="#tab-system">System</button>
     <button class="tab"        data-target="#tab-health">Health</button>
     <button class="tab"        data-target="#tab-storage">Storage</button>
+    <button class="tab"        data-target="#tab-blog">Blog</button>
     <button class="tab"        data-target="#tab-newsletter">Newsletter</button>
   </nav>
 
@@ -50,6 +51,11 @@
   <section id="tab-storage" class="tab-panel" hidden
            hx-get="/api/storage" hx-trigger="load, revealed" hx-swap="innerHTML">
     <p class="muted">Loading storage…</p>
+  </section>
+
+  <section id="tab-blog" class="tab-panel" hidden
+           hx-get="/api/blog" hx-trigger="load, revealed" hx-swap="innerHTML">
+    <p class="muted">Loading blog…</p>
   </section>
 
   <section id="tab-newsletter" class="tab-panel" hidden

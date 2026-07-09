@@ -20,7 +20,7 @@ from . import passkey
 from . import totp as totp_mod
 from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS, TOOLS_FEED_TOKEN
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
-from . import uptime, system, newsletter as nl
+from . import uptime, system, newsletter as nl, blog as blog_mod
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -275,6 +275,40 @@ async def _newsletter_render(request: Request, flash: str | None = None, flash_k
     ctx['flash'] = flash
     ctx['flash_kind'] = flash_kind
     return templates.TemplateResponse(request, 'partials/newsletter.html', ctx)
+
+
+async def _blog_render(request: Request, flash: str | None = None, flash_kind: str = 'ok'):
+    try:
+        ctx = {'posts': blog_mod.load_posts(), 'error': None}
+    except Exception as e:
+        logging.warning('blog admin fetch failed: %s', e)
+        ctx = {'posts': [], 'error': str(e)}
+    ctx['flash'] = flash
+    ctx['flash_kind'] = flash_kind
+    return templates.TemplateResponse(request, 'partials/blog.html', ctx)
+
+
+@app.get('/api/blog', response_class=HTMLResponse)
+async def api_blog(request: Request, _: None = Depends(require_auth)):
+    return await _blog_render(request)
+
+
+@app.post('/api/blog/publish', response_class=HTMLResponse)
+async def api_blog_publish(request: Request, slug: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        blog_mod.set_published(slug.strip(), True)
+        return await _blog_render(request, f'Published {slug}.', 'ok')
+    except Exception as e:
+        return await _blog_render(request, f'Publish failed: {e}', 'err')
+
+
+@app.post('/api/blog/unpublish', response_class=HTMLResponse)
+async def api_blog_unpublish(request: Request, slug: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        blog_mod.set_published(slug.strip(), False)
+        return await _blog_render(request, f'Unpublished {slug}.', 'ok')
+    except Exception as e:
+        return await _blog_render(request, f'Unpublish failed: {e}', 'err')
 
 
 @app.get('/api/newsletter', response_class=HTMLResponse)

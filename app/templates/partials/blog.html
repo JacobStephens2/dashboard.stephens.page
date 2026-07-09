@@ -1,0 +1,60 @@
+{% if error %}
+  <div class="card"><p class="muted">Blog manager unavailable: {{ error }}</p></div>
+{% else %}
+  {% if flash %}
+    <p class="nl-flash {{ flash_kind }}">{{ flash }}</p>
+  {% endif %}
+
+  <div class="card">
+    <div class="blog-head">
+      <div>
+        <h2>Blog publishing</h2>
+        <p class="muted small">Publishing rewrites the post list on <a href="https://stephens.page/blog/" target="_blank" rel="noopener">stephens.page/blog</a>. Unpublished posts stay on disk but drop off the public index and the newsletter send list.</p>
+      </div>
+      <a class="link" href="https://stephens.page/blog/" target="_blank" rel="noopener">Open public blog</a>
+    </div>
+    {% if posts %}
+    <table>
+      <thead><tr><th>Status</th><th>Post</th><th>Public card</th><th></th></tr></thead>
+      <tbody>
+      {% for post in posts %}
+        <tr>
+          <td>
+            {% if post.published %}
+              <span class="badge ok">Published</span>
+            {% else %}
+              <span class="badge warn">Unpublished</span>
+            {% endif %}
+          </td>
+          <td>
+            <div><strong>{{ post.title }}</strong></div>
+            <div class="muted small">{{ post.slug }}</div>
+            {% if post.eyebrow %}<div class="muted small">{{ post.eyebrow }}</div>{% endif %}
+          </td>
+          <td>
+            {% if post.note_meta %}<div class="muted small">{{ post.note_meta }}</div>{% endif %}
+            {% if post.summary %}<div class="muted small">{{ post.summary }}</div>{% endif %}
+          </td>
+          <td class="blog-actions">
+            <a class="link" href="https://stephens.page/blog/{{ post.slug }}/" target="_blank" rel="noopener">Open</a>
+            {% if post.published %}
+            <form hx-post="/api/blog/unpublish" hx-target="#tab-blog" hx-swap="innerHTML" style="display:inline">
+              <input type="hidden" name="slug" value="{{ post.slug }}">
+              <button type="submit" class="link nl-danger">Unpublish</button>
+            </form>
+            {% else %}
+            <form hx-post="/api/blog/publish" hx-target="#tab-blog" hx-swap="innerHTML" style="display:inline">
+              <input type="hidden" name="slug" value="{{ post.slug }}">
+              <button type="submit" class="link">Publish</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">No blog posts found.</p>
+    {% endif %}
+  </div>
+{% endif %}

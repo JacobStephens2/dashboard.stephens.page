@@ -75,3 +75,6 @@ SYSTEMD_UNITS = {
 }
 
 CACHE_TTL_SECONDS = 60
+
+STEPHENS_BLOG_DIR = os.environ.get('STEPHENS_BLOG_DIR', '/var/www/stephens.page/blog')
+STEPHENS_BLOG_INDEX = os.environ.get('STEPHENS_BLOG_INDEX', '/var/www/stephens.page/blog/index.html')
