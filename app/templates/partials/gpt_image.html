@@ -1,0 +1,44 @@
+{% if error %}
+  <div class="card"><p class="muted">Could not load gpt-image trials: {{ error }}</p></div>
+{% else %}
+  <div class="nl-stats">
+    <div class="card nl-stat"><div class="nl-num">{{ total_attempts }}</div><div class="muted small">Attempts</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ successes }}</div><div class="muted small">Images returned</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ failures }}</div><div class="muted small">Failed</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ unique_emails }}</div><div class="muted small">Unique emails</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Live try (stephens.page/gpt-image)</h2>
+    <p class="muted small" style="margin-top:0">
+      Newsletter-gated browser trial. Each success adds the email to the stephens list and spends one OpenAI image generation (medium / 1024).
+      Honeypot hits: {{ honeypots }}. Log: <code>{{ path }}</code>
+    </p>
+    {% if recent %}
+    <table>
+      <thead>
+        <tr><th>When</th><th>Email</th><th>Status</th><th>Latency</th><th>Prompt</th></tr>
+      </thead>
+      <tbody>
+      {% for e in recent %}
+        <tr>
+          <td class="muted small">{{ e.ts | humandate }}</td>
+          <td>{{ e.email or '—' }}</td>
+          <td>
+            {% if e.ok %}
+              <span class="nl-badge confirmed">ok</span>
+            {% else %}
+              <span class="nl-badge unsubscribed">{{ e.error or 'fail' }}</span>
+            {% endif %}
+          </td>
+          <td class="muted small">{% if e.latency_ms %}{{ e.latency_ms }}ms{% else %}—{% endif %}</td>
+          <td class="muted small">{{ e.prompt_short or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">No trials yet. First successful submit from the landing page will show up here.</p>
+    {% endif %}
+  </div>
+{% endif %}

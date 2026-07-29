@@ -20,7 +20,7 @@ from . import passkey
 from . import totp as totp_mod
 from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS, TOOLS_FEED_TOKEN
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
-from . import uptime, system, newsletter as nl, blog as blog_mod
+from . import uptime, system, newsletter as nl, blog as blog_mod, gpt_image as gpt_image_mod
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -335,6 +335,25 @@ async def api_blog_unpublish(request: Request, slug: str = Form(...), _: None = 
 @app.get('/api/newsletter', response_class=HTMLResponse)
 async def api_newsletter(request: Request, _: None = Depends(require_auth)):
     return await _newsletter_render(request)
+
+
+@app.get('/api/gpt-image', response_class=HTMLResponse)
+async def api_gpt_image(request: Request, _: None = Depends(require_auth)):
+    try:
+        ctx = gpt_image_mod.stats()
+    except Exception as e:
+        logging.warning('gpt-image stats failed: %s', e)
+        ctx = {
+            'total_attempts': 0,
+            'successes': 0,
+            'failures': 0,
+            'unique_emails': 0,
+            'honeypots': 0,
+            'recent': [],
+            'path': str(getattr(gpt_image_mod, 'TRIALS_PATH', '')),
+            'error': str(e),
+        }
+    return templates.TemplateResponse(request, 'partials/gpt_image.html', ctx)
 
 
 @app.post('/api/newsletter/send', response_class=HTMLResponse)
