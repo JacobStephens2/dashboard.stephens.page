@@ -4,6 +4,7 @@
   <div class="header-actions">
     <a href="/muxboard/" class="btn-muxboard" title="tmux sessions (muxboard)">Muxboard</a>
     <a href="https://code.stephens.page/" class="btn-code" title="VS Code in the browser (code-server)" target="_blank" rel="noopener">VS Code</a>
+    <a href="/stack" class="link" title="Tech stack (private view)">Stack</a>
     <button hx-post="/api/refresh" hx-swap="none" hx-on::after-request="document.querySelectorAll('[hx-trigger]').forEach(el => htmx.trigger(el, 'load'))">Refresh</button>
     <a href="/passkey" class="link">Passkeys</a>
     <a href="/totp" class="link">2FA</a>
@@ -17,6 +18,7 @@
   <nav class="tabs">
     <a class="tab tab-link" href="/muxboard/">Muxboard</a>
     <a class="tab tab-link" href="https://code.stephens.page/" target="_blank" rel="noopener" title="VS Code in the browser">VS Code</a>
+    <a class="tab tab-link" href="/stack" title="Tech stack (private view)">Stack</a>
     <button class="tab active" data-target="#tab-accounts">Accounts</button>
     <button class="tab"        data-target="#tab-signups">Signups</button>
     <button class="tab"        data-target="#tab-uptime">Uptime</button>
