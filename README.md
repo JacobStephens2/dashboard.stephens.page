@@ -6,6 +6,11 @@ stephens.page.
 
 Live: <https://dashboard.stephens.page>
 
+Linked tools (authenticated dashboard header):
+
+- **Muxboard** - tmux sessions at `/muxboard/`
+- **VS Code** - code-server at <https://code.stephens.page/> (see below)
+
 ## Stack
 
 - **Python 3.12** + **FastAPI** + **Jinja2** templates, served by **uvicorn**
@@ -125,6 +130,33 @@ channels fire from `asyncio.gather()` with `return_exceptions=True`.
 2. Add it to the `ADAPTERS` list in `app/main.py`.
 3. Add its connection details to `.env` and `app/config.py`.
 4. Restart: `sudo systemctl restart dashboard`.
+
+## code-server (VS Code in the browser)
+
+Browser IDE for this droplet, linked from the dashboard as **VS Code**.
+
+| Piece | Where |
+| --- | --- |
+| Public URL | <https://code.stephens.page/> |
+| Unit | `code-server.service` → `127.0.0.1:3493` |
+| Binary | `/mnt/volume_nyc3_01/jacob/code-server-install/bin/code-server` (v4.130) |
+| Config | `~/.config/code-server/config.yaml` (hashed-password, mode 600) |
+| Password | `~/.config/code-server/password` (mode 600; login form on the site) |
+| User data | `/mnt/volume_nyc3_01/jacob/code-server/user-data` |
+| Extensions | `/mnt/volume_nyc3_01/jacob/code-server/extensions` |
+| Apache | `code.stephens.page` ProxyPass + WebSocket → :3493 (repo copies under `apache/`) |
+| Default folder | `/var/www` (unit `ExecStart` last arg) |
+
+```bash
+sudo systemctl restart code-server
+journalctl -u code-server -f
+# password for the code-server login form:
+cat ~/.config/code-server/password
+```
+
+code-server has its own password auth (argon2 hashed in config). It is
+separate from the dashboard session. Uptime monitors both the systemd unit
+and `https://code.stephens.page/login`.
 
 ## Notes
 

@@ -1,0 +1,21 @@
+[Unit]
+Description=code-server (VS Code in browser at code.stephens.page)
+After=network.target
+# Volume holds install + user-data
+RequiresMountsFor=/mnt/volume_nyc3_01
+
+[Service]
+Type=simple
+User=jacob
+Group=jacob
+Environment=PATH=/mnt/volume_nyc3_01/jacob/code-server-install/bin:/usr/local/bin:/usr/bin
+ExecStart=/mnt/volume_nyc3_01/jacob/code-server-install/bin/code-server \
+  --config /home/jacob/.config/code-server/config.yaml \
+  /var/www
+Restart=on-failure
+RestartSec=5
+# code-server can use a fair bit of memory with extensions
+MemoryMax=4G
+
+[Install]
+WantedBy=multi-user.target

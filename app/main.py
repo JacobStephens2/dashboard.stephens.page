@@ -112,21 +112,42 @@ templates.env.filters['humandate'] = humandate
 
 # --- Routes -------------------------------------------------------------------
 
+def _safe_next(raw: str | None) -> str:
+    """Same-origin relative redirect only (e.g. /muxboard/). Reject protocol-relative."""
+    if not raw:
+        return '/'
+    raw = raw.strip()
+    if not raw.startswith('/') or raw.startswith('//'):
+        return '/'
+    return raw
+
+
 @app.get('/login', response_class=HTMLResponse)
-async def login_form(request: Request, error: str | None = None):
+async def login_form(request: Request, error: str | None = None, next: str | None = None):
+    dest = _safe_next(next or request.query_params.get('next'))
     if is_authenticated(request):
-        return RedirectResponse('/', status_code=303)
+        return RedirectResponse(dest, status_code=303)
     return templates.TemplateResponse(
-        request, 'login.html', {'error': error, 'totp_enabled': totp_mod.is_enabled()})
+        request, 'login.html', {
+            'error': error,
+            'totp_enabled': totp_mod.is_enabled(),
+            'next': dest,
+        })
 
 
 @app.post('/login')
-async def login_submit(request: Request, password: str = Form(...), code: str = Form('')):
+async def login_submit(
+    request: Request,
+    password: str = Form(...),
+    code: str = Form(''),
+    next: str = Form('/'),
+):
+    dest = _safe_next(next)
     if not verify_password(password):
-        return RedirectResponse('/login?error=1', status_code=303)
+        return RedirectResponse(f'/login?error=1&next={dest}', status_code=303)
     if totp_mod.is_enabled() and not totp_mod.verify(code):
-        return RedirectResponse('/login?error=1', status_code=303)
-    response = RedirectResponse('/', status_code=303)
+        return RedirectResponse(f'/login?error=1&next={dest}', status_code=303)
+    response = RedirectResponse(dest, status_code=303)
     issue_session_cookie(response)
     return response
 

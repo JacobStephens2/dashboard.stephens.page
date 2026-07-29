@@ -76,6 +76,7 @@ HTTP_CHECKS: list[Check] = [
     Check('wedding',                 'http', 'https://wedding.stephens.page/'),
     Check('wiki',                    'http', 'https://wiki.stephens.page/'),
     Check('dashboard (self)',        'http', 'https://dashboard.stephens.page/login'),
+    Check('code-server',             'http', 'https://code.stephens.page/login'),
 ]
 
 SYSTEMD_CHECKS: list[Check] = [
@@ -85,6 +86,7 @@ SYSTEMD_CHECKS: list[Check] = [
     Check('macros-api',      'systemd', 'macros-api'),
     Check('dailydozen-api',  'systemd', 'dailydozen-api'),
     Check('dashboard (svc)', 'systemd', 'dashboard'),
+    Check('code-server',     'systemd', 'code-server'),
 ]
 
 CHECKS: list[Check] = HTTP_CHECKS + SYSTEMD_CHECKS

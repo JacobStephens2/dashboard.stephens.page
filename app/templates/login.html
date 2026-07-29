@@ -3,6 +3,7 @@
 {% block heading %}Sign in{% endblock %}
 {% block content %}
   <form method="post" action="/login" class="login">
+    <input type="hidden" name="next" value="{{ next or '/' }}" />
     <label>
       <span>Password</span>
       <input type="password" name="password" autofocus required />
@@ -45,7 +46,11 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(serializeAssertion(cred)),
       });
-      if (res.ok) { location.href = '/'; }
+      if (res.ok) {
+        const params = new URLSearchParams(location.search);
+        const next = params.get('next') || '/';
+        location.href = (next.startsWith('/') && !next.startsWith('//')) ? next : '/';
+      }
       else { throw new Error('verification failed'); }
     } catch (e) {
       msg.textContent = 'Passkey sign-in failed.';

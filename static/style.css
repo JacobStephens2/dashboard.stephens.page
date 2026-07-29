@@ -17,7 +17,7 @@ header {
   padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
 }
 header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: 0.02em; }
-.header-actions { display: flex; gap: 0.5rem; align-items: center; }
+.header-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
 
 main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 
@@ -29,10 +29,73 @@ button:hover { background: #232838; }
 button.link { background: none; border: none; color: var(--muted); padding: 0.4rem 0; }
 button.link:hover { color: var(--text); }
 
-.tabs { display: flex; gap: 0.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
-.tab { background: none; border: none; padding: 0.6rem 1rem; color: var(--muted); border-bottom: 2px solid transparent; border-radius: 0; }
+/* Primary header CTAs → muxboard / code-server.
+   Pin color for :visited/:active so browser purple does not kill contrast on dark UI. */
+a.btn-muxboard,
+a.btn-muxboard:link,
+a.btn-muxboard:visited,
+a.btn-muxboard:active,
+a.btn-code,
+a.btn-code:link,
+a.btn-code:visited,
+a.btn-code:active {
+  display: inline-block;
+  background: var(--accent);
+  color: #0b0d12;
+  border: 1px solid var(--accent);
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font: 600 0.92rem/1.2 inherit;
+  text-decoration: none;
+}
+a.btn-muxboard:hover,
+a.btn-muxboard:focus-visible,
+a.btn-code:hover,
+a.btn-code:focus-visible {
+  filter: brightness(1.1);
+  background: #8bbbff;
+  border-color: #8bbbff;
+  color: #0b0d12;
+  text-decoration: none;
+  outline: none;
+}
+a.btn-muxboard:focus-visible,
+a.btn-code:focus-visible {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+/* Secondary accent so VS Code sits next to Muxboard without competing. */
+a.btn-code,
+a.btn-code:link,
+a.btn-code:visited,
+a.btn-code:active {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
+  font-weight: 600;
+}
+a.btn-code:hover,
+a.btn-code:focus-visible {
+  background: #2a3142;
+  border-color: var(--accent);
+  color: var(--text);
+  filter: none;
+}
+
+.tabs { display: flex; gap: 0.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tab { background: none; border: none; padding: 0.6rem 1rem; color: var(--muted); border-bottom: 2px solid transparent; border-radius: 0; font: inherit; cursor: pointer; text-decoration: none; display: inline-block; }
 .tab:hover { color: var(--text); background: none; }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+a.tab.tab-link,
+a.tab.tab-link:link,
+a.tab.tab-link:visited,
+a.tab.tab-link:active {
+  color: var(--accent);
+  text-decoration: none;
+}
+a.tab.tab-link:hover,
+a.tab.tab-link:focus-visible {
+  color: var(--text);
+}
 
 .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
 .card h2 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: 600; }
