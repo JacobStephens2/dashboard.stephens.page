@@ -17,7 +17,7 @@
     {% if recent %}
     <table>
       <thead>
-        <tr><th>When</th><th>Email</th><th>Status</th><th>Latency</th><th>Prompt</th></tr>
+        <tr><th>When</th><th>Email</th><th>Status</th><th>Cost</th><th>Latency</th><th>Prompt</th></tr>
       </thead>
       <tbody>
       {% for e in recent %}
@@ -31,6 +31,7 @@
               <span class="nl-badge unsubscribed">{{ e.error or 'fail' }}</span>
             {% endif %}
           </td>
+          <td class="muted small">{% if e.cost_usd is defined and e.cost_usd is not none %}~${{ '%.4f'|format(e.cost_usd) }}{% else %}—{% endif %}</td>
           <td class="muted small">{% if e.latency_ms %}{{ e.latency_ms }}ms{% else %}—{% endif %}</td>
           <td class="muted small">{{ e.prompt_short or '—' }}</td>
         </tr>
