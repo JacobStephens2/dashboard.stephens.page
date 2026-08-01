@@ -25,7 +25,7 @@ GALLERY_DIR = Path(
 GALLERY_MANIFEST = Path(
     os.environ.get("INKVOKE_GALLERY_MANIFEST", str(GALLERY_DIR / "manifest.json"))
 )
-PUBLIC_BASE = os.environ.get("INKVOKE_PUBLIC_BASE", "https://stephens.page/inkvoke").rstrip("/")
+PUBLIC_BASE = os.environ.get("INKVOKE_PUBLIC_BASE", "https://inkvoke.dev").rstrip("/")
 
 SPEND_PATH = Path(os.environ.get("INKVOKE_SPEND_PATH", str(GALLERY_DIR / "spend.json")))
 SPEND_PATH_LIB = Path(os.environ.get("INKVOKE_SPEND_PATH_LIB", "/var/lib/gpt-image/spend.json"))

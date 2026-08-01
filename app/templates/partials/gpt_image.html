@@ -1,18 +1,96 @@
 {% if error %}
-  <div class="card"><p class="muted">Could not load gpt-image trials: {{ error }}</p></div>
+  <div class="card"><p class="muted">Could not load inkvoke trials: {{ error }}</p></div>
 {% else %}
+  {% if flash %}
+    <p class="nl-flash {{ flash_kind }}">{{ flash }}</p>
+  {% endif %}
+
   <div class="nl-stats">
     <div class="card nl-stat"><div class="nl-num">{{ total_attempts }}</div><div class="muted small">Attempts</div></div>
     <div class="card nl-stat"><div class="nl-num">{{ successes }}</div><div class="muted small">Images returned</div></div>
     <div class="card nl-stat"><div class="nl-num">{{ failures }}</div><div class="muted small">Failed</div></div>
     <div class="card nl-stat"><div class="nl-num">{{ unique_emails }}</div><div class="muted small">Unique emails</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ gallery_visible }}</div><div class="muted small">In gallery</div></div>
+    <div class="card nl-stat"><div class="nl-num">{{ gallery_hidden }}</div><div class="muted small">Hidden</div></div>
   </div>
 
   <div class="card">
-    <h2>Live try (stephens.page/gpt-image)</h2>
+    <div class="blog-head">
+      <div>
+        <h2>Community gallery</h2>
+        <p class="muted small" style="margin:0">
+          Generated images from
+          <a href="{{ public_base }}/" target="_blank" rel="noopener">inkvoke.dev</a>.
+          Toggle display to show or hide a tile on the public gallery and hero slideshow.
+          Files stay on disk either way. New generations email jacob@stephens.page via Resend.
+        </p>
+        {% if gallery_error %}
+          <p class="muted small" style="color:var(--bad)">Gallery error: {{ gallery_error }}</p>
+        {% endif %}
+      </div>
+      <a class="link" href="{{ public_base }}/#gallery" target="_blank" rel="noopener">Open public gallery</a>
+    </div>
+
+    {% if gallery_items %}
+    <div class="ink-gallery-grid">
+      {% for g in gallery_items %}
+      <article class="ink-gallery-card{% if g.hidden %} is-hidden{% endif %}">
+        <a class="ink-gallery-thumb" href="{{ g.public_url or '#' }}" target="_blank" rel="noopener"
+           {% if not g.public_url %}aria-disabled="true"{% endif %}>
+          {% if g.public_url %}
+            <img src="{{ g.public_url }}" alt="{{ g.prompt_short or g.id }}" loading="lazy" width="256" height="256">
+          {% else %}
+            <div class="ink-gallery-missing muted small">No image URL</div>
+          {% endif %}
+        </a>
+        <div class="ink-gallery-meta">
+          <div class="ink-gallery-status">
+            {% if g.hidden %}
+              <span class="badge warn">Hidden</span>
+            {% else %}
+              <span class="badge ok">In gallery</span>
+            {% endif %}
+            {% if g.pinned %}<span class="badge">Pinned</span>{% endif %}
+          </div>
+          <div class="muted small">by {{ g.by or 'anonymous' }}</div>
+          <p class="ink-gallery-prompt">{{ g.prompt_short or '(no prompt)' }}</p>
+          <div class="muted small mono">{{ g.id }}</div>
+          {% if g.cost_usd is defined and g.cost_usd is not none %}
+            <div class="muted small">~${{ '%.4f'|format(g.cost_usd) }}</div>
+          {% endif %}
+          <div class="ink-gallery-actions">
+            {% if g.hidden %}
+            <form hx-post="/api/gpt-image/gallery/show" hx-target="#tab-gpt-image" hx-swap="innerHTML">
+              <input type="hidden" name="id" value="{{ g.id }}">
+              <button type="submit" class="link">Show in gallery</button>
+            </form>
+            {% else %}
+            <form hx-post="/api/gpt-image/gallery/hide" hx-target="#tab-gpt-image" hx-swap="innerHTML">
+              <input type="hidden" name="id" value="{{ g.id }}">
+              <button type="submit" class="link nl-danger">Hide from gallery</button>
+            </form>
+            {% endif %}
+            {% if g.public_url %}
+              <a class="link" href="{{ g.public_url }}" target="_blank" rel="noopener">Open image</a>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p class="muted">No gallery images yet. First successful live try will appear here.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Live try log</h2>
     <p class="muted small" style="margin-top:0">
-      Newsletter-gated browser trial. Each success adds the email to the stephens list and spends one OpenAI image generation (medium / 1024).
+      Newsletter-gated browser trial at
+      <a href="{{ public_base }}/#try" target="_blank" rel="noopener">inkvoke.dev</a>.
+      Each success can add the email to the stephens list and spends one OpenAI image generation (medium / 1024).
       Honeypot hits: {{ honeypots }}. Log: <code>{{ path }}</code>
+      {% if gallery_manifest %} · Manifest: <code>{{ gallery_manifest }}</code>{% endif %}
     </p>
     {% if recent %}
     <table>

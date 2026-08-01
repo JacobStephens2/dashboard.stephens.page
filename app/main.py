@@ -337,12 +337,11 @@ async def api_newsletter(request: Request, _: None = Depends(require_auth)):
     return await _newsletter_render(request)
 
 
-@app.get('/api/gpt-image', response_class=HTMLResponse)
-async def api_gpt_image(request: Request, _: None = Depends(require_auth)):
+async def _gpt_image_render(request: Request, flash: str | None = None, flash_kind: str = 'ok'):
     try:
         ctx = gpt_image_mod.stats()
     except Exception as e:
-        logging.warning('gpt-image stats failed: %s', e)
+        logging.warning('inkvoke stats failed: %s', e)
         ctx = {
             'total_attempts': 0,
             'successes': 0,
@@ -350,10 +349,45 @@ async def api_gpt_image(request: Request, _: None = Depends(require_auth)):
             'unique_emails': 0,
             'honeypots': 0,
             'recent': [],
+            'gallery_items': [],
+            'gallery_total': 0,
+            'gallery_visible': 0,
+            'gallery_hidden': 0,
+            'gallery_manifest': str(getattr(gpt_image_mod, 'GALLERY_MANIFEST', '')),
+            'public_base': getattr(gpt_image_mod, 'PUBLIC_BASE', 'https://inkvoke.dev'),
             'path': str(getattr(gpt_image_mod, 'TRIALS_PATH', '')),
             'error': str(e),
         }
+    ctx['flash'] = flash
+    ctx['flash_kind'] = flash_kind
     return templates.TemplateResponse(request, 'partials/gpt_image.html', ctx)
+
+
+@app.get('/api/gpt-image', response_class=HTMLResponse)
+async def api_gpt_image(request: Request, _: None = Depends(require_auth)):
+    return await _gpt_image_render(request)
+
+
+@app.post('/api/gpt-image/gallery/show', response_class=HTMLResponse)
+async def api_gpt_image_gallery_show(request: Request, id: str = Form(...),
+                                    _: None = Depends(require_auth)):
+    try:
+        item = gpt_image_mod.set_gallery_hidden(id.strip(), False)
+        label = item.get('id') or id
+        return await _gpt_image_render(request, f'Showing {label} in the public gallery.', 'ok')
+    except Exception as e:
+        return await _gpt_image_render(request, f'Show failed: {e}', 'err')
+
+
+@app.post('/api/gpt-image/gallery/hide', response_class=HTMLResponse)
+async def api_gpt_image_gallery_hide(request: Request, id: str = Form(...),
+                                    _: None = Depends(require_auth)):
+    try:
+        item = gpt_image_mod.set_gallery_hidden(id.strip(), True)
+        label = item.get('id') or id
+        return await _gpt_image_render(request, f'Hid {label} from the public gallery.', 'ok')
+    except Exception as e:
+        return await _gpt_image_render(request, f'Hide failed: {e}', 'err')
 
 
 @app.post('/api/newsletter/send', response_class=HTMLResponse)
