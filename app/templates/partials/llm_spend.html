@@ -1,0 +1,83 @@
+{% if error %}
+  <div class="card"><p class="muted">Could not load LLM spend: {{ error }}</p></div>
+{% else %}
+  <div class="nl-stats">
+    <div class="card nl-stat">
+      <div class="nl-num">${{ '%.4f'|format(total_usd) }}</div>
+      <div class="muted small">Total spend (USD)</div>
+    </div>
+    <div class="card nl-stat">
+      <div class="nl-num">{{ request_count }}</div>
+      <div class="muted small">LLM requests</div>
+    </div>
+    <div class="card nl-stat">
+      <div class="nl-num">${{ '%.2f'|format(alert_threshold_usd) }}</div>
+      <div class="muted small">Email alert at</div>
+    </div>
+    <div class="card nl-stat">
+      <div class="nl-num">{% if over_alert %}OVER{% else %}${{ '%.4f'|format(remaining_to_alert) }}{% endif %}</div>
+      <div class="muted small">{% if over_alert %}Threshold crossed{% else %}Remaining to alert{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="blog-head">
+      <div>
+        <h2>Hello ladder · GPT-5.6 Luna</h2>
+        <p class="muted small" style="margin:0">
+          Live AI engineering + vibe coding rungs on
+          <a href="https://stephens.page/blog/from-machine-code-to-ai-the-same-hello-world/" target="_blank" rel="noopener">the abstraction ladder post</a>.
+          Model <span class="mono">{{ model }}</span>, reasoning effort <span class="mono">low</span>.
+          {{ note }}
+        </p>
+        {% if alerted_5usd %}
+          <p class="muted small" style="color:var(--bad)">Alert email already sent for the ${{ '%.2f'|format(alert_threshold_usd) }} threshold.</p>
+        {% endif %}
+        <p class="muted small mono">Ledger: {{ path }}</p>
+        {% if updated_at %}
+          <p class="muted small">Updated {{ updated_at|humandate }}</p>
+        {% endif %}
+      </div>
+      <a class="link" href="https://stephens.page/blog/from-machine-code-to-ai-the-same-hello-world/" target="_blank" rel="noopener">Open post</a>
+    </div>
+
+    <div class="nl-stats" style="margin-top:1rem">
+      <div class="card nl-stat"><div class="nl-num">{{ input_tokens }}</div><div class="muted small">Input tokens</div></div>
+      <div class="card nl-stat"><div class="nl-num">{{ output_tokens }}</div><div class="muted small">Output tokens</div></div>
+      <div class="card nl-stat"><div class="nl-num">{{ cached_input_tokens }}</div><div class="muted small">Cached input</div></div>
+    </div>
+
+    {% if last_request %}
+    <h3 style="margin-top:1.25rem">Last request</h3>
+    <p class="muted small mono">
+      mode={{ last_request.mode }} ·
+      ${{ '%.6f'|format(last_request.cost_usd or 0) }} ·
+      in={{ last_request.input_tokens }} out={{ last_request.output_tokens }} ·
+      {{ last_request.model }}
+    </p>
+    {% endif %}
+
+    <h3 style="margin-top:1.25rem">Recent events</h3>
+    {% if recent %}
+    <table class="table" style="width:100%;font-size:0.9rem">
+      <thead>
+        <tr>
+          <th>When</th><th>Mode</th><th>Cost</th><th>Tokens in/out</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in recent %}
+        <tr>
+          <td class="muted small">{{ e.ts|humandate }}</td>
+          <td class="mono">{{ e.mode }}</td>
+          <td>${{ '%.6f'|format(e.cost_usd or 0) }}</td>
+          <td class="mono">{{ e.input_tokens }}/{{ e.output_tokens }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">No LLM events yet. Run the AI engineering or vibe coding rung on the post.</p>
+    {% endif %}
+  </div>
+{% endif %}

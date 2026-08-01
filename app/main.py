@@ -20,7 +20,7 @@ from . import passkey
 from . import totp as totp_mod
 from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS, TOOLS_FEED_TOKEN
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
-from . import uptime, system, newsletter as nl, blog as blog_mod, gpt_image as gpt_image_mod
+from . import uptime, system, newsletter as nl, blog as blog_mod, gpt_image as gpt_image_mod, llm_spend as llm_spend_mod
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -366,6 +366,37 @@ async def _gpt_image_render(request: Request, flash: str | None = None, flash_ki
 @app.get('/api/gpt-image', response_class=HTMLResponse)
 async def api_gpt_image(request: Request, _: None = Depends(require_auth)):
     return await _gpt_image_render(request)
+
+
+async def _llm_spend_render(request: Request):
+    try:
+        ctx = llm_spend_mod.stats()
+    except Exception as e:
+        logging.warning('llm spend stats failed: %s', e)
+        ctx = {
+            'total_usd': 0.0,
+            'request_count': 0,
+            'input_tokens': 0,
+            'output_tokens': 0,
+            'cached_input_tokens': 0,
+            'alert_threshold_usd': 5.0,
+            'remaining_to_alert': 5.0,
+            'over_alert': False,
+            'alerted_5usd': False,
+            'model': 'gpt-5.6-luna',
+            'note': '',
+            'path': str(getattr(llm_spend_mod, 'SPEND_PATH', '')),
+            'updated_at': 0,
+            'last_request': None,
+            'recent': [],
+            'error': str(e),
+        }
+    return templates.TemplateResponse(request, 'partials/llm_spend.html', ctx)
+
+
+@app.get('/api/llm-spend', response_class=HTMLResponse)
+async def api_llm_spend(request: Request, _: None = Depends(require_auth)):
+    return await _llm_spend_render(request)
 
 
 @app.post('/api/gpt-image/gallery/show', response_class=HTMLResponse)

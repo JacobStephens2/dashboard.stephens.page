@@ -28,6 +28,7 @@
     <button class="tab"        data-target="#tab-blog">Blog</button>
     <button class="tab"        data-target="#tab-newsletter">Newsletter</button>
     <button class="tab"        data-target="#tab-gpt-image">inkvoke</button>
+    <button class="tab"        data-target="#tab-llm-spend">Ladder LLM $</button>
   </nav>
 
   <section id="tab-accounts" class="tab-panel"
@@ -73,6 +74,11 @@
   <section id="tab-gpt-image" class="tab-panel" hidden
            hx-get="/api/gpt-image" hx-trigger="load, revealed" hx-swap="innerHTML">
     <p class="muted">Loading inkvoke…</p>
+  </section>
+
+  <section id="tab-llm-spend" class="tab-panel" hidden
+           hx-get="/api/llm-spend" hx-trigger="load, revealed" hx-swap="innerHTML">
+    <p class="muted">Loading ladder LLM spend…</p>
   </section>
 
   <script>
