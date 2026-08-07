@@ -78,3 +78,9 @@ CACHE_TTL_SECONDS = 60
 
 STEPHENS_BLOG_DIR = os.environ.get('STEPHENS_BLOG_DIR', '/var/www/stephens.page/blog')
 STEPHENS_BLOG_INDEX = os.environ.get('STEPHENS_BLOG_INDEX', '/var/www/stephens.page/blog/index.html')
+
+# jacobstephens.net. Unlike the blog above, this checkout is the live site and
+# carries its own manifest, so the dashboard drives tools/publish.py there
+# rather than rewriting HTML itself.
+JSNET_SITE_DIR = os.environ.get('JSNET_SITE_DIR', '/var/www/jacobstephens.net')
+JSNET_SITE_URL = os.environ.get('JSNET_SITE_URL', 'https://jacobstephens.net')

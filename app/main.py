@@ -11,6 +11,7 @@ from fastapi.exception_handlers import http_exception_handler as default_http_ex
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 
 from .auth import (
     verify_password, issue_session_cookie, clear_session_cookie,
@@ -20,7 +21,7 @@ from . import passkey
 from . import totp as totp_mod
 from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS, TOOLS_FEED_TOKEN
 from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
-from . import uptime, system, newsletter as nl, blog as blog_mod, gpt_image as gpt_image_mod, llm_spend as llm_spend_mod
+from . import uptime, system, newsletter as nl, blog as blog_mod, gpt_image as gpt_image_mod, llm_spend as llm_spend_mod, jsnet as jsnet_mod
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -330,6 +331,52 @@ async def api_blog_unpublish(request: Request, slug: str = Form(...), _: None = 
         return await _blog_render(request, f'Unpublished {slug}.', 'ok')
     except Exception as e:
         return await _blog_render(request, f'Unpublish failed: {e}', 'err')
+
+
+async def _jsnet_render(request: Request, flash: str | None = None, flash_kind: str = 'ok'):
+    try:
+        ctx = {
+            'posts': jsnet_mod.load_posts(),
+            'state': jsnet_mod.site_state(),
+            'site_url': jsnet_mod.SITE_URL,
+            'error': None,
+        }
+    except Exception as e:
+        logging.warning('jacobstephens.net admin fetch failed: %s', e)
+        ctx = {
+            'posts': [],
+            'state': {'ok': False, 'dirty': [], 'reason': ''},
+            'site_url': jsnet_mod.SITE_URL,
+            'error': str(e),
+        }
+    ctx['flash'] = flash
+    ctx['flash_kind'] = flash_kind
+    return templates.TemplateResponse(request, 'partials/jsnet.html', ctx)
+
+
+@app.get('/api/jsnet', response_class=HTMLResponse)
+async def api_jsnet(request: Request, _: None = Depends(require_auth)):
+    return await _jsnet_render(request)
+
+
+@app.post('/api/jsnet/publish', response_class=HTMLResponse)
+async def api_jsnet_publish(request: Request, slug: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        # publish.py rewrites the site and the push talks to GitHub, so keep
+        # both off the event loop.
+        await run_in_threadpool(jsnet_mod.set_published, slug.strip(), True)
+        return await _jsnet_render(request, f'Published {slug}, committed and pushed.', 'ok')
+    except Exception as e:
+        return await _jsnet_render(request, f'Publish failed: {e}', 'err')
+
+
+@app.post('/api/jsnet/unpublish', response_class=HTMLResponse)
+async def api_jsnet_unpublish(request: Request, slug: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        await run_in_threadpool(jsnet_mod.set_published, slug.strip(), False)
+        return await _jsnet_render(request, f'{slug} is a draft again, committed and pushed.', 'ok')
+    except Exception as e:
+        return await _jsnet_render(request, f'Unpublish failed: {e}', 'err')
 
 
 @app.get('/api/newsletter', response_class=HTMLResponse)

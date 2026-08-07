@@ -1,0 +1,71 @@
+{% if error %}
+  <div class="card"><p class="muted">Post manager unavailable: {{ error }}</p></div>
+{% else %}
+  {% if flash %}
+    <p class="nl-flash {{ flash_kind }}">{{ flash }}</p>
+  {% endif %}
+
+  <div class="card">
+    <div class="blog-head">
+      <div>
+        <h2>jacobstephens.net posts</h2>
+        <p class="muted small">Publishing runs <code>tools/publish.py</code> in the live checkout, so it takes effect immediately — there is no separate deploy. The change is committed and pushed for you. A draft keeps its URL and stays readable by anyone with the link; it is only kept out of the archive and marked <code>noindex</code>.</p>
+      </div>
+      <a class="link" href="{{ site_url }}/posts/" target="_blank" rel="noopener">Open public archive</a>
+    </div>
+
+    {% if not state.ok and state.reason %}
+      <p class="nl-flash err">{{ state.reason }}</p>
+      {% if state.dirty %}
+        <p class="muted small">Uncommitted: {{ state.dirty|join(', ') }}</p>
+      {% endif %}
+    {% endif %}
+
+    {% if posts %}
+    <table>
+      <thead><tr><th>Status</th><th>Post</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+      {% for post in posts %}
+        <tr>
+          <td>
+            {% if post.published %}
+              <span class="badge ok">Published</span>
+            {% else %}
+              <span class="badge warn">Draft</span>
+            {% endif %}
+          </td>
+          <td>
+            <div><strong>{{ post.title }}</strong></div>
+            <div class="muted small">{{ post.slug }}</div>
+            {% if post.categories %}<div class="muted small">{{ post.categories|join(' · ') }}</div>{% endif %}
+          </td>
+          <td class="muted small">{{ post.date_text }}</td>
+          <td class="blog-actions">
+            <a class="link" href="{{ post.url }}" target="_blank" rel="noopener">Open</a>
+            {% if not state.ok %}
+              <span class="muted small">locked</span>
+            {% elif post.published %}
+            <form hx-post="/api/jsnet/unpublish" hx-target="#tab-jsnet" hx-swap="innerHTML"
+                  hx-confirm="Make &quot;{{ post.title }}&quot; a draft again? It drops off the public archive and gets a noindex tag. The URL keeps working."
+                  style="display:inline">
+              <input type="hidden" name="slug" value="{{ post.slug }}">
+              <button type="submit" class="link nl-danger">Make draft</button>
+            </form>
+            {% else %}
+            <form hx-post="/api/jsnet/publish" hx-target="#tab-jsnet" hx-swap="innerHTML"
+                  hx-confirm="Publish &quot;{{ post.title }}&quot; to jacobstephens.net now? This puts it in the public archive and removes its noindex tag immediately — the site is live, there is no staging step."
+                  style="display:inline">
+              <input type="hidden" name="slug" value="{{ post.slug }}">
+              <button type="submit" class="link">Publish</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="muted">No posts found in posts.json.</p>
+    {% endif %}
+  </div>
+{% endif %}
