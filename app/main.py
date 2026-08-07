@@ -339,6 +339,8 @@ async def _jsnet_render(request: Request, flash: str | None = None, flash_kind: 
             'posts': jsnet_mod.load_posts(),
             'state': jsnet_mod.site_state(),
             'site_url': jsnet_mod.SITE_URL,
+            'preview_user': jsnet_mod.DRAFT_USER,
+            'preview_set': jsnet_mod.preview_password_set(),
             'error': None,
         }
     except Exception as e:
@@ -347,6 +349,8 @@ async def _jsnet_render(request: Request, flash: str | None = None, flash_kind: 
             'posts': [],
             'state': {'ok': False, 'dirty': [], 'reason': ''},
             'site_url': jsnet_mod.SITE_URL,
+            'preview_user': jsnet_mod.DRAFT_USER,
+            'preview_set': False,
             'error': str(e),
         }
     ctx['flash'] = flash
@@ -377,6 +381,16 @@ async def api_jsnet_unpublish(request: Request, slug: str = Form(...), _: None =
         return await _jsnet_render(request, f'{slug} is a draft again, committed and pushed.', 'ok')
     except Exception as e:
         return await _jsnet_render(request, f'Unpublish failed: {e}', 'err')
+
+
+@app.post('/api/jsnet/preview-password', response_class=HTMLResponse)
+async def api_jsnet_preview_password(request: Request, password: str = Form(...), _: None = Depends(require_auth)):
+    try:
+        await run_in_threadpool(jsnet_mod.set_preview_password, password)
+        # Deliberately says nothing about the value itself.
+        return await _jsnet_render(request, 'Draft preview password updated.', 'ok')
+    except Exception as e:
+        return await _jsnet_render(request, f'Could not set the password: {e}', 'err')
 
 
 @app.get('/api/newsletter', response_class=HTMLResponse)

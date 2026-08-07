@@ -30,6 +30,14 @@ SITE_URL = JSNET_SITE_URL.rstrip("/")
 MANIFEST = SITE_DIR / "posts.json"
 PUBLISH_PY = SITE_DIR / "tools" / "publish.py"
 
+# Drafts sit behind one shared password. This path must match DRAFT_HTPASSWD in
+# the site's tools/publish.py, which writes the .htaccess pointing at it. It is
+# deliberately outside the site repository: that repo is public, so the hash
+# cannot live there, and outside any document root, so it is never served.
+DRAFT_HTPASSWD = Path("/var/www/.htpasswd-drafts")
+DRAFT_USER = "preview"
+MIN_PASSWORD = 10
+
 # Long enough for a slow push, short enough that a hung credential prompt
 # surfaces as an error instead of pinning a worker thread.
 _TIMEOUT = 60
@@ -122,6 +130,44 @@ def site_state() -> dict:
             ),
         }
     return {"ok": True, "dirty": [], "reason": ""}
+
+
+def preview_password_set() -> bool:
+    """Whether a draft preview password exists. Never reveals the hash."""
+    try:
+        return DRAFT_HTPASSWD.is_file() and DRAFT_HTPASSWD.stat().st_size > 0
+    except OSError:
+        return False
+
+
+def set_preview_password(password: str) -> None:
+    """Write the shared draft password.
+
+    Handed to htpasswd on stdin rather than argv, so it never shows up in the
+    process list. Nothing here logs or returns it.
+    """
+    if len(password) < MIN_PASSWORD:
+        raise ValueError(f"Use at least {MIN_PASSWORD} characters.")
+
+    try:
+        proc = subprocess.run(
+            ["htpasswd", "-i", "-c", str(DRAFT_HTPASSWD), DRAFT_USER],
+            input=password,
+            capture_output=True,
+            text=True,
+            timeout=_TIMEOUT,
+        )
+    except FileNotFoundError:
+        raise RuntimeError("htpasswd is not installed on this server.")
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("htpasswd timed out.")
+    if proc.returncode != 0:
+        # stderr can echo the input; report the status only.
+        raise RuntimeError(f"htpasswd failed (exit {proc.returncode}).")
+
+    # Apache runs as another user and must read it. The file holds a hash, not
+    # the password, and sits outside every document root.
+    os.chmod(DRAFT_HTPASSWD, 0o644)
 
 
 def set_published(slug: str, published: bool) -> list[dict]:

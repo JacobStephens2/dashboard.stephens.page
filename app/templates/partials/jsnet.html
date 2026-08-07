@@ -9,9 +9,25 @@
     <div class="blog-head">
       <div>
         <h2>jacobstephens.net posts</h2>
-        <p class="muted small">Publishing runs <code>tools/publish.py</code> in the live checkout, so it takes effect immediately — there is no separate deploy. The change is committed and pushed for you. A draft keeps its URL and stays readable by anyone with the link; it is only kept out of the archive and marked <code>noindex</code>.</p>
+        <p class="muted small">Publishing runs <code>tools/publish.py</code> in the live checkout, so it takes effect immediately — there is no separate deploy. The change is committed and pushed for you. A draft is kept out of the archive, marked <code>noindex</code>, and put behind the preview password below; publishing lifts all three together.</p>
       </div>
       <a class="link" href="{{ site_url }}/posts/" target="_blank" rel="noopener">Open public archive</a>
+    </div>
+
+    <div class="blog-head" style="margin-top:1rem">
+      <div>
+        <h3 style="margin:0">Draft preview password</h3>
+        {% if preview_set %}
+          <p class="muted small">Drafts ask for this password. Username <code>{{ preview_user }}</code>. Send both to anyone who should read a draft — the link alone will not open it. Setting a new password replaces the old one everywhere.</p>
+        {% else %}
+          <p class="nl-flash err" style="margin:.4rem 0">No password is set, so <strong>nobody can open a draft</strong> — not even you. Drafts are safely private, but unreadable until you set one.</p>
+        {% endif %}
+      </div>
+      <form hx-post="/api/jsnet/preview-password" hx-target="#tab-jsnet" hx-swap="innerHTML" style="display:flex;gap:.4rem;align-items:center">
+        <input type="password" name="password" autocomplete="new-password" required minlength="10"
+               placeholder="new password (10+ chars)" style="min-width:15rem">
+        <button type="submit" class="link">{{ 'Replace' if preview_set else 'Set password' }}</button>
+      </form>
     </div>
 
     {% if not state.ok and state.reason %}
@@ -53,7 +69,7 @@
             </form>
             {% else %}
             <form hx-post="/api/jsnet/publish" hx-target="#tab-jsnet" hx-swap="innerHTML"
-                  hx-confirm="Publish &quot;{{ post.title }}&quot; to jacobstephens.net now? This puts it in the public archive and removes its noindex tag immediately — the site is live, there is no staging step."
+                  hx-confirm="Publish &quot;{{ post.title }}&quot; to jacobstephens.net now? This puts it in the public archive, removes its noindex tag, and drops the preview password so anyone can read it — immediately. The site is live; there is no staging step."
                   style="display:inline">
               <input type="hidden" name="slug" value="{{ post.slug }}">
               <button type="submit" class="link">Publish</button>
