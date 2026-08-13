@@ -8,7 +8,7 @@
   <div class="card">
     <div class="blog-head">
       <div>
-        <h2>Blog publishing</h2>
+        <h2>Blog publishing{% set drafts = posts | rejectattr('published') | list %}{% if drafts %} <span class="badge warn">{{ drafts | length }} draft{{ '' if drafts | length == 1 else 's' }}</span>{% endif %}</h2>
         <p class="muted small">Publishing rewrites the post list on <a href="https://stephens.page/blog/" target="_blank" rel="noopener">stephens.page/blog</a>. Unpublished posts stay on disk but drop off the public index and the newsletter send list.</p>
       </div>
       <a class="link" href="https://stephens.page/blog/" target="_blank" rel="noopener">Open public blog</a>
@@ -22,8 +22,14 @@
           <td>
             {% if post.published %}
               <span class="badge ok">Published</span>
+              {% if post.noindex %}<div class="muted small">warning: still noindex</div>{% endif %}
             {% else %}
               <span class="badge warn">Unpublished</span>
+              {% if post.noindex %}
+                <div class="muted small">noindex</div>
+              {% else %}
+                <div class="muted small">crawlable</div>
+              {% endif %}
             {% endif %}
           </td>
           <td>

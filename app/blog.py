@@ -22,8 +22,31 @@ _LIST_ITEM_RE = re.compile(
     r'</a>\s*</li>',
     re.IGNORECASE | re.DOTALL,
 )
-_NOTES_LIST_RE = re.compile(r'<ul class="notes-list">.*?</ul>', re.IGNORECASE | re.DOTALL)
+# Swallow the leading indent too. Without this the replacement is inserted after the
+# whitespace already on the line, so every publish pushed the list further right.
+_NOTES_LIST_RE = re.compile(r'[ \t]*<ul class="notes-list">.*?</ul>', re.IGNORECASE | re.DOTALL)
 _WHITESPACE_RE = re.compile(r"\s+")
+# The tree is live, so an unpublished post is still readable by anyone holding its
+# URL. Dropping off the public index hides it from readers; this tag is what keeps
+# a draft out of search results until it is published.
+_ROBOTS_RE = re.compile(r'[ \t]*<meta\s+name="robots"[^>]*>\n?', re.IGNORECASE)
+_ROBOTS_ANCHOR_RE = re.compile(r'<meta\s+charset="[^"]*">', re.IGNORECASE)
+_ROBOTS_TAG = '\n    <meta name="robots" content="noindex, nofollow">'
+
+
+def set_noindex(path: Path, noindex: bool) -> bool:
+    """Add or remove the draft ``robots`` tag. Returns True if the file changed."""
+    raw = path.read_text()
+    updated = _ROBOTS_RE.sub("", raw)
+    if noindex:
+        anchor = _ROBOTS_ANCHOR_RE.search(updated)
+        if anchor is None:
+            return False
+        updated = updated[: anchor.end()] + _ROBOTS_TAG + updated[anchor.end() :]
+    if updated == raw:
+        return False
+    path.write_text(updated)
+    return True
 
 
 def _clean(text: str) -> str:
@@ -61,8 +84,15 @@ def _load_existing_cards() -> tuple[dict[str, dict], list[str]]:
         slug = match.group(1)
         order.append(slug)
         cards[slug] = {
+            # _clean is for showing the card in the dashboard: entities unescaped,
+            # whitespace collapsed. The *_html values are what goes back into the
+            # public index verbatim. Round-tripping a card through _clean and then
+            # html.escape would turn a live <code> tag in a summary into literal
+            # &lt;code&gt; text, so publishing one post would damage the others.
             "note_meta": _clean(match.group(2)),
             "summary": _clean(match.group(4)),
+            "note_meta_html": match.group(2).strip(),
+            "summary_html": match.group(4).strip(),
         }
     return cards, order
 
@@ -109,6 +139,10 @@ def _read_post(slug: str, card: dict | None, published_order: dict[str, int]) ->
             date_text = date_text or inferred
     note_meta = card["note_meta"] if card else _derive_note_meta(date_text, eyebrow)
     summary = card["summary"] if card else description
+    # A post with no card yet has never been in the index, so its text comes from the
+    # post's own <meta> and must be escaped once, here.
+    note_meta_html = card["note_meta_html"] if card else html.escape(note_meta, quote=False)
+    summary_html = card["summary_html"] if card else html.escape(summary, quote=False)
     return {
         "slug": slug,
         "title": title,
@@ -117,8 +151,11 @@ def _read_post(slug: str, card: dict | None, published_order: dict[str, int]) ->
         "date_text": date_text or "",
         "note_meta": note_meta,
         "summary": summary,
+        "note_meta_html": note_meta_html,
+        "summary_html": summary_html,
         "published": slug in published_order,
         "published_rank": published_order.get(slug),
+        "noindex": bool(_ROBOTS_RE.search(raw)),
         "sort_ts": parsed_date.timestamp() if parsed_date else 0,
         "path": str(index_path),
     }
@@ -137,23 +174,21 @@ def load_posts() -> list[dict]:
         post = _read_post(slug, cards.get(slug), published_order)
         if post:
             posts.append(post)
-    posts.sort(
-        key=lambda post: (
-            0 if post["published"] else 1,
-            post["published_rank"] if post["published"] else 0,
-            -post["sort_ts"],
-            post["slug"],
-        )
-    )
+    # Newest first, drafts and published interleaved by date - a draft is usually the
+    # most recent thing on disk, so this puts what you are working on at the top
+    # without a separate section. The Unpublished badge carries the distinction.
+    # This is display order only; set_published() re-derives the public index order
+    # from published_rank so rewriting it never depends on how this list is sorted.
+    posts.sort(key=lambda post: (-post["sort_ts"], post["slug"]))
     return posts
 
 
 def _render_notes_list(posts: list[dict]) -> str:
     lines = ["                <ul class=\"notes-list\">"]
     for post in posts:
-        summary = html.escape(post["summary"], quote=False)
+        summary = post["summary_html"]
         title = html.escape(post["title"], quote=False)
-        note_meta = html.escape(post["note_meta"], quote=False)
+        note_meta = post["note_meta_html"]
         slug = post["slug"]
         lines.extend(
             [
@@ -177,6 +212,8 @@ def set_published(slug: str, published: bool) -> list[dict]:
         raise ValueError(f"Unknown blog slug: {slug}")
 
     published_posts = [post for post in posts if post["published"] and post["slug"] != slug]
+    # Keep the public index in its existing order regardless of display sorting.
+    published_posts.sort(key=lambda post: post["published_rank"])
     if published:
         inserted = False
         for i, post in enumerate(published_posts):
@@ -193,4 +230,7 @@ def set_published(slug: str, published: bool) -> list[dict]:
     if count != 1:
         raise ValueError("Could not locate blog post list in public index.")
     BLOG_INDEX.write_text(updated)
+    # Index membership and crawlability move together: a draft carries noindex,
+    # a published post must not, or publishing would be silently ineffective.
+    set_noindex(Path(target["path"]), not published)
     return load_posts()

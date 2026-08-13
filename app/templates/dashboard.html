@@ -89,15 +89,45 @@
 
   <script>
     // Only panel tabs (buttons with data-target). Anchor tabs like Muxboard navigate away.
-    document.querySelectorAll('button.tab[data-target]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('button.tab[data-target]').forEach(b => b.classList.remove('active'));
+    // The active tab lives in ?tab=<name>, so a copied URL, a refresh, and the browser's
+    // back button all land on the same panel.
+    (function () {
+      const buttons = Array.from(document.querySelectorAll('button.tab[data-target]'));
+      if (!buttons.length) return;
+      const nameOf = btn => btn.dataset.target.replace(/^#tab-/, '');
+      const defaultName = nameOf(buttons[0]);
+
+      function requestedName() {
+        const q = new URLSearchParams(location.search).get('tab');
+        if (q && buttons.some(b => nameOf(b) === q)) return q;
+        // Accept #tab-blog too: older links and in-page anchors keep working.
+        if (location.hash.startsWith('#tab-')) {
+          const h = location.hash.slice('#tab-'.length);
+          if (buttons.some(b => nameOf(b) === h)) return h;
+        }
+        return defaultName;
+      }
+
+      function show(name, push) {
+        const btn = buttons.find(b => nameOf(b) === name) || buttons[0];
+        buttons.forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.hidden = true);
         btn.classList.add('active');
         const target = document.querySelector(btn.dataset.target);
         target.hidden = false;
-        htmx.trigger(target, 'revealed');
-      });
-    });
+        if (window.htmx) htmx.trigger(target, 'revealed');
+
+        const url = new URL(location.href);
+        url.searchParams.set('tab', nameOf(btn));
+        url.hash = '';
+        const state = { tab: nameOf(btn) };
+        if (push) history.pushState(state, '', url);
+        else history.replaceState(state, '', url);
+      }
+
+      buttons.forEach(btn => btn.addEventListener('click', () => show(nameOf(btn), true)));
+      window.addEventListener('popstate', () => show(requestedName(), false));
+      show(requestedName(), false);
+    })();
   </script>
 {% endblock %}

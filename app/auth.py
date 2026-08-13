@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 import bcrypt
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from fastapi import Request, HTTPException, status
@@ -46,7 +48,12 @@ def require_auth(request: Request):
         # full page requests get a redirect to /login.
         if request.headers.get('hx-request') == 'true':
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        # Carry the requested path *and* query through the login round-trip, so a
+        # copied deep link (e.g. /?tab=blog) still lands on the right tab.
+        dest = request.url.path
+        if request.url.query:
+            dest = f'{dest}?{request.url.query}'
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
-            headers={'Location': '/login'},
+            headers={'Location': f'/login?next={quote(dest, safe="")}'},
         )
