@@ -305,6 +305,8 @@ async def _blog_render(request: Request, flash: str | None = None, flash_kind: s
     except Exception as e:
         logging.warning('blog admin fetch failed: %s', e)
         ctx = {'posts': [], 'error': str(e)}
+    ctx['preview_user'] = blog_mod.DRAFT_USER
+    ctx['preview_set'] = blog_mod.preview_password_set()
     ctx['flash'] = flash
     ctx['flash_kind'] = flash_kind
     return templates.TemplateResponse(request, 'partials/blog.html', ctx)
@@ -322,6 +324,17 @@ async def api_blog_publish(request: Request, slug: str = Form(...), _: None = De
         return await _blog_render(request, f'Published {slug}.', 'ok')
     except Exception as e:
         return await _blog_render(request, f'Publish failed: {e}', 'err')
+
+
+@app.post('/api/blog/preview-password', response_class=HTMLResponse)
+async def api_blog_preview_password(request: Request, password: str = Form(...), _: None = Depends(require_auth)):
+    # Same hash file as the jacobstephens.net tab: one password opens drafts on
+    # both blogs, so setting it here replaces it there too.
+    try:
+        await run_in_threadpool(blog_mod.set_preview_password, password)
+        return await _blog_render(request, 'Draft preview password set for both blogs.', 'ok')
+    except Exception as e:
+        return await _blog_render(request, f'Could not set the password: {e}', 'err')
 
 
 @app.post('/api/blog/unpublish', response_class=HTMLResponse)

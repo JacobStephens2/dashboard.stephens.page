@@ -9,9 +9,25 @@
     <div class="blog-head">
       <div>
         <h2>Blog publishing{% set drafts = posts | rejectattr('published') | list %}{% if drafts %} <span class="badge warn">{{ drafts | length }} draft{{ '' if drafts | length == 1 else 's' }}</span>{% endif %}</h2>
-        <p class="muted small">Publishing rewrites the post list on <a href="https://stephens.page/blog/" target="_blank" rel="noopener">stephens.page/blog</a>. Unpublished posts stay on disk but drop off the public index and the newsletter send list.</p>
+        <p class="muted small">Publishing rewrites the post list on <a href="https://stephens.page/blog/" target="_blank" rel="noopener">stephens.page/blog</a>. A draft stays on disk but drops off the public index, is marked <code>noindex</code>, and sits behind the preview password below; publishing lifts all three together.</p>
       </div>
       <a class="link" href="https://stephens.page/blog/" target="_blank" rel="noopener">Open public blog</a>
+    </div>
+
+    <div class="blog-head" style="margin-top:.9rem;border-top:1px solid var(--rule,#ddd);padding-top:.9rem">
+      <div>
+        <h3 style="margin:0">Draft preview password</h3>
+        {% if preview_set %}
+          <p class="muted small">Drafts ask for this password. Username <code>{{ preview_user }}</code>. Send both to anyone who should read a draft - the link alone will not open it. This is the same password as the jacobstephens.net drafts, so replacing it here replaces it there.</p>
+        {% else %}
+          <p class="nl-flash err" style="margin:.4rem 0">No password is set, so <strong>nobody can open a draft</strong> - not even you. Drafts are safely private, but unreadable until you set one.</p>
+        {% endif %}
+      </div>
+      <form hx-post="/api/blog/preview-password" hx-target="#tab-blog" hx-swap="innerHTML" style="display:flex;gap:.4rem;align-items:center">
+        <input type="password" name="password" autocomplete="new-password" required minlength="10"
+               placeholder="new password (10+ chars)" style="min-width:15rem">
+        <button type="submit" class="link">{{ 'Replace' if preview_set else 'Set password' }}</button>
+      </form>
     </div>
     {% if posts %}
     <table>
@@ -22,13 +38,18 @@
           <td>
             {% if post.published %}
               <span class="badge ok">Published</span>
-              {% if post.noindex %}<div class="muted small">warning: still noindex</div>{% endif %}
+              {% if post.noindex %}<div class="nl-flash err" style="margin:.2rem 0">warning: still noindex</div>{% endif %}
+              {% if post.gated %}<div class="nl-flash err" style="margin:.2rem 0">warning: still behind the password</div>{% endif %}
             {% else %}
               <span class="badge warn">Unpublished</span>
-              {% if post.noindex %}
-                <div class="muted small">noindex</div>
+              {% if post.gated and post.noindex %}
+                <div class="muted small">private: password + noindex</div>
+              {% elif post.gated %}
+                <div class="muted small">password, but crawlable</div>
+              {% elif post.noindex %}
+                <div class="muted small">noindex only: anyone with the URL can read it</div>
               {% else %}
-                <div class="muted small">crawlable</div>
+                <div class="nl-flash err" style="margin:.2rem 0">public: no password, no noindex</div>
               {% endif %}
             {% endif %}
           </td>
