@@ -42,8 +42,8 @@ MAIL_FROM_NAME         = os.environ.get('MAIL_FROM_NAME', 'Stephens.page Dashboa
 @dataclass
 class Check:
     name: str            # human label
-    kind: str            # 'http' | 'systemd'
-    target: str          # URL for http, unit name for systemd
+    kind: str            # 'http' | 'systemd' | 'node'
+    target: str          # URL for http, unit name for systemd, binary path for node
     expect_substring: Optional[str] = None   # http only: must appear in body
     timeout: float = 10.0
 
@@ -86,7 +86,23 @@ SYSTEMD_CHECKS: list[Check] = [
     Check('code-server',     'systemd', 'code-server'),
 ]
 
-CHECKS: list[Check] = HTTP_CHECKS + SYSTEMD_CHECKS
+# Node binaries that must stay on a patched release. code-server bundles its
+# own lib/node, and an upgrade replaces it, so this catches an upgrade that
+# lands an unpatched Node.
+NODE_CHECKS: list[Check] = [
+    Check('Node (system)',      'node', '/usr/bin/node'),
+    Check('Node (code-server)', 'node', '/mnt/volume_nyc3_01/jacob/code-server-install/bin/code-server'),
+]
+
+# Oldest patched release per major line (Node.js security release 2026-10-21).
+# A major missing from this table counts as unpatched; add it when adopting it.
+NODE_PATCHED_FLOOR: dict[int, tuple[int, int, int]] = {
+    22: (22, 23, 4),
+    24: (24, 22, 1),
+    26: (26, 12, 1),
+}
+
+CHECKS: list[Check] = HTTP_CHECKS + SYSTEMD_CHECKS + NODE_CHECKS
 
 
 # --- State store --------------------------------------------------------------
@@ -151,6 +167,34 @@ async def run_systemd_check(check: Check) -> CheckResult:
     return CheckResult(check.name, ok, state or 'unknown')
 
 
+def _node_binary(target: str) -> Path:
+    # code-server's launcher resolves to <release>/bin/code-server; its Node is <release>/lib/node
+    p = Path(target).resolve()
+    if p.name == 'code-server':
+        return p.parent.parent / 'lib' / 'node'
+    return p
+
+
+async def run_node_check(check: Check) -> CheckResult:
+    node = _node_binary(check.target)
+    proc = await asyncio.create_subprocess_exec(
+        str(node), '--version',
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+    )
+    stdout, _ = await proc.communicate()
+    version = stdout.decode().strip()   # e.g. "v24.22.1"
+    try:
+        parts = tuple(int(x) for x in version.lstrip('v').split('.')[:3])
+    except ValueError:
+        return CheckResult(check.name, False, f"unreadable version {version!r}")
+    floor = NODE_PATCHED_FLOOR.get(parts[0])
+    if floor is None:
+        return CheckResult(check.name, False, f"{version}: no patched floor for Node {parts[0]}")
+    if parts < floor:
+        return CheckResult(check.name, False, f"{version} < {'.'.join(map(str, floor))}")
+    return CheckResult(check.name, True, version)
+
+
 async def run_all_checks() -> list[CheckResult]:
     async with httpx.AsyncClient(headers={'User-Agent': 'stephens-page-uptime/1.0'}) as client:
         coros = []
@@ -159,6 +203,8 @@ async def run_all_checks() -> list[CheckResult]:
                 coros.append(run_http_check(c, client))
             elif c.kind == 'systemd':
                 coros.append(run_systemd_check(c))
+            elif c.kind == 'node':
+                coros.append(run_node_check(c))
         results = await asyncio.gather(*coros, return_exceptions=True)
     # Coerce exceptions into failed CheckResults
     out: list[CheckResult] = []
