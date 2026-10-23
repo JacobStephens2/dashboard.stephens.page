@@ -50,7 +50,6 @@ def _mysql(prefix: str) -> dict:
 MYSQL_DBS = {
     'artifact': _mysql('ARTIFACT'),
     'exodus':   _mysql('EXODUS'),
-    'gameplan': _mysql('GAMEPLAN'),
     'event':    _mysql('EVENT'),
     'skylar':   _mysql('SKYLAR'),
 }
@@ -61,7 +60,6 @@ APP_ROOTS = {
     'creighton':  '/var/www/creighton.stephens.page',
     'macros':     '/var/www/macros.stephens.page',
     'dailydozen': '/var/www/dailydozen.stephens.page',
-    'gameplan':   '/var/www/gameplan.stephens.page',
     'event':      '/var/www/event.stephens.page',
     'skylar':     '/var/www/skylar.stephens.page',
     'clowder':    '/var/www/clowder.stephens.page',

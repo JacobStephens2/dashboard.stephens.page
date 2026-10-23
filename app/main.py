@@ -20,7 +20,7 @@ from .auth import (
 from . import passkey
 from . import totp as totp_mod
 from .config import CACHE_TTL_SECONDS, PASSKEY_ORIGINS, TOOLS_FEED_TOKEN
-from .data import creighton, macros, dailydozen, exodus, artifact, gameplan, event as event_app, skylar, clowder
+from .data import creighton, macros, dailydozen, exodus, artifact, event as event_app, skylar, clowder
 from . import uptime, system, newsletter as nl, blog as blog_mod, gpt_image as gpt_image_mod, llm_spend as llm_spend_mod, jsnet as jsnet_mod
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / 'app' / 'templates'))
 
-ADAPTERS = [creighton, macros, dailydozen, exodus, artifact, gameplan, event_app, skylar, clowder]
+ADAPTERS = [creighton, macros, dailydozen, exodus, artifact, event_app, skylar, clowder]
 
 
 @asynccontextmanager

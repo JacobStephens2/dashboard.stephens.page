@@ -32,7 +32,6 @@ app/
     dailydozen.py       Node/SQLite — daily checklist
     exodus.py           PHP/MySQL — user_data updated_at (ms epoch)
     artifact.py         PHP/MySQL — use_table.UseDate
-    gameplan.py         PHP/MySQL — players count
     event.py            PHP/Slim/MySQL — events + tasks
     skylar.py           Laravel/MySQL — users.updated_at
   templates/
