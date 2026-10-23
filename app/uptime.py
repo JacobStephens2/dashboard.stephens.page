@@ -61,7 +61,6 @@ HTTP_CHECKS: list[Check] = [
     Check('creightontracker.com',    'http', 'https://creightontracker.com/'),
     Check('Daily Dozen Tracker',     'http', 'https://dailydozen.stephens.page/'),
     Check('dana4wvt',                'http', 'https://dana4wvt.stephens.page/'),
-    Check('drfamiglio.com',          'http', 'https://drfamiglio.com/'),
     Check('Event Manager',           'http', 'https://event.stephens.page/'),
     Check('Event Manager (api)',     'http', 'https://api.event.stephens.page/'),
     Check('Exodus 40 Lite',          'http', 'https://exodus.stephens.page/'),
