@@ -46,6 +46,7 @@ class Check:
     target: str          # URL for http, unit name for systemd, binary path for node
     expect_substring: Optional[str] = None   # http only: must appear in body
     timeout: float = 10.0
+    email_alerts: bool = True   # False: still shown on the dashboard, no alert email
 
 
 # Public sites + APIs. Each tuple is (name, url, optional body-substring).
@@ -70,7 +71,7 @@ HTTP_CHECKS: list[Check] = [
     Check('resume',                  'http', 'https://resume.stephens.page/'),
     Check('stephens.page',           'http', 'https://stephens.page/'),
     Check('Wadadli Flare Catering',  'http', 'https://wadadliflarecatering.com/'),
-    Check('wedding',                 'http', 'https://wedding.stephens.page/'),
+    Check('wedding',                 'http', 'https://wedding.stephens.page/', email_alerts=False),
     Check('wiki',                    'http', 'https://wiki.stephens.page/'),
     Check('dashboard (self)',        'http', 'https://dashboard.stephens.page/login'),
     Check('code-server',             'http', 'https://code.stephens.page/login'),
@@ -318,13 +319,15 @@ async def send_alert_email(name: str, direction: str, detail: str):
 
 async def run_once():
     results = await run_all_checks()
+    email_alerts = {c.name: c.email_alerts for c in CHECKS}
     for res in results:
         alert = await update_state_and_decide(res)
         if alert:
             # Email and SMS in parallel: a slow/failing SMS provider must not
             # delay (or block) the email path, and vice versa.
             await asyncio.gather(
-                send_alert_email(res.name, alert, res.detail),
+                *([send_alert_email(res.name, alert, res.detail)]
+                  if email_alerts.get(res.name, True) else []),
                 send_alert_sms(res.name, alert, res.detail),
                 return_exceptions=True,
             )
