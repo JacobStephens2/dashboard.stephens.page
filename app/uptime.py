@@ -71,7 +71,8 @@ HTTP_CHECKS: list[Check] = [
     Check('resume',                  'http', 'https://resume.stephens.page/'),
     Check('stephens.page',           'http', 'https://stephens.page/'),
     Check('Wadadli Flare Catering',  'http', 'https://wadadliflarecatering.com/'),
-    Check('wedding',                 'http', 'https://wedding.stephens.page/', email_alerts=False),
+    # Paused 2026-10-26 with the wedding vhost disabled; uncomment when it is re-enabled.
+    # Check('wedding',                 'http', 'https://wedding.stephens.page/', email_alerts=False),
     Check('wiki',                    'http', 'https://wiki.stephens.page/'),
     Check('dashboard (self)',        'http', 'https://dashboard.stephens.page/login'),
     Check('code-server',             'http', 'https://code.stephens.page/login'),
